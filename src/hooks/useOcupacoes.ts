@@ -1,35 +1,18 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { Ocupacao, Filtros } from '../types';
-import { carregarOcupacoes, salvarOcupacoes, restaurarDadosOriginais } from '../services/storageService';
+import { dataRepository } from '../services/repository';
 import { agruparPorDia, agruparPorSemana, getSemanasDoIntervalo } from '../utils/calculations';
-import { getWeekNumber, getWeekday } from '../utils/weekNumber';
-import { getNomeMes } from '../utils/dateUtils';
-
-function recalcularDerivados(registro: Ocupacao): Ocupacao {
-  return {
-    ...registro,
-    semana: getWeekNumber(registro.data),
-    dia: getWeekday(registro.data),
-    mes: getNomeMes(registro.data),
-  };
-}
 
 export function useOcupacoes(filtros: Filtros) {
-  const [ocupacoes, setOcupacoes] = useState<Ocupacao[]>(() => carregarOcupacoes());
+  const [ocupacoes, setOcupacoes] = useState<Ocupacao[]>(() => dataRepository.getAll());
 
   const atualizarRegistro = useCallback((registro: Ocupacao) => {
-    setOcupacoes(prev => {
-      const atualizadas = prev.map(o =>
-        o.id === registro.id ? recalcularDerivados(registro) : o
-      );
-      salvarOcupacoes(atualizadas);
-      return atualizadas;
-    });
+    setOcupacoes(dataRepository.update(registro));
   }, []);
 
   const restaurar = useCallback(() => {
-    restaurarDadosOriginais();
-    setOcupacoes(carregarOcupacoes());
+    dataRepository.reset();
+    setOcupacoes(dataRepository.getAll());
   }, []);
 
   // Lista de projetos respeita Data + Tipo, mas NÃO o próprio filtro de projeto,

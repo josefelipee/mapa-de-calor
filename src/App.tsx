@@ -8,6 +8,7 @@ import { Heatmap } from './components/Heatmap';
 import { WeekBars } from './components/WeekBars';
 import { Legend } from './components/Legend';
 import { Drawer } from './components/Drawer';
+import { exportarExcel, nomeArquivoExcel } from './services/export';
 import type { Filtros, ViewMode } from './types';
 
 const FILTROS_INICIAIS: Filtros = {
@@ -21,7 +22,8 @@ function App() {
   const { user, login, logout } = useAuth();
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIAIS);
   const [viewMode, setViewMode] = useState<ViewMode>('macro');
-  const { dias, semanas, semanasNoIntervalo, projetosDisponiveis, atualizarRegistro, restaurar } =
+  const [exportando, setExportando] = useState(false);
+  const { ocupacoes, dias, semanas, semanasNoIntervalo, projetosDisponiveis, atualizarRegistro, restaurar } =
     useOcupacoes(filtros);
   const [selectedData, setSelectedData] = useState<string | null>(null);
   const [semanaSelecionada, setSemanaSelecionada] = useState<number | null>(null);
@@ -31,6 +33,15 @@ function App() {
   }
 
   const diaSelecionado = selectedData ? dias.get(selectedData) ?? null : null;
+
+  const handleExportar = async () => {
+    setExportando(true);
+    try {
+      await exportarExcel(ocupacoes, nomeArquivoExcel(ocupacoes));
+    } finally {
+      setExportando(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -45,6 +56,8 @@ function App() {
               restaurar();
             }
           }}
+          onExportar={handleExportar}
+          exportando={exportando}
           projetosDisponiveis={projetosDisponiveis}
           viewMode={viewMode}
           onViewModeChange={setViewMode}

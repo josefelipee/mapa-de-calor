@@ -11,6 +11,8 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 - React + Vite + TypeScript
 - Tailwind CSS
 - date-fns (apenas formatação de datas)
+- ExcelJS (exportação XLSX; import dinâmico)
+- Vitest (testes)
 - GitHub Pages (publicação)
 
 ## Funcionalidades
@@ -29,6 +31,19 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 - Heatmap/tooltip/totais recalculam imediatamente
 - Legenda de cores visível
 - Botão **Restaurar dados** (limpa `localStorage`)
+- Botão **Exportar Excel** — gera a **base completa** (aba `Base` / Excel Table `Tabela1`, 16 colunas), ignorando filtros
+
+## Exportação Excel
+
+- Biblioteca: **ExcelJS** (import dinâmico — não afeta o bundle inicial).
+- Sempre exporta a **base completa efetiva** (`dataRepository.exportAll()`), com todas as edições persistidas; **não** respeita filtros visuais.
+- Aba `Base` com as 16 colunas na ordem original da `Tabela1` + Excel Table `Tabela1`, autofilter e 1ª linha congelada.
+- `Semana`/`Dia`/`Mês` são **recalculados a partir de `DATA`** no momento do export.
+- Datas gravadas como data/hora real do Excel (`dd/mm/yyyy` e `dd/mm/yyyy hh:mm`); campos numéricos permanecem numéricos.
+- Nome derivado dos anos da base: `Controles_ION_<anos>_atualizado_YYYYMMDD_HHmm.xlsx`
+  (ex.: `Controles_ION_2027-2028_atualizado_20261008_1530.xlsx`).
+- A coluna `ID` original **é exportada**; o `uuid` interno **não** (permanece só na aplicação).
+- As demais abas/fórmulas do arquivo original (JUNCAO, Gráficos, Semanal, ANÁLISE MAPA, Categorias, pivôs) **não** são recriadas.
 
 ## Regras de cálculo
 
@@ -101,6 +116,27 @@ Todas as faixas ficam centralizadas em
 node scripts/validate.cjs
 ```
 
+### Camada de dados (repository)
+
+Os componentes/hooks não acessam JSON ou `localStorage` diretamente. Tudo passa por
+[`src/services/repository`](src/services/repository):
+
+- `DataRepository` (interface): `getAll`, `getById`, `update`, `reset`, `exportAll`
+- `LocalDataRepository` (atual): JSON + `localStorage`
+- Futuro: `FirestoreDataRepository` — sem alterar Heatmap, Drawer, filtros ou cálculos.
+
+## Testes
+
+Testes automatizados com **Vitest** (round-trip da exportação):
+
+```bash
+npm run test
+```
+
+Cobrem: 16 colunas na ordem correta, 7.233 registros, tipos (data/data-hora/número),
+preservação de `ID`, edição de `Nova Coluna Orçada`, recálculo de `Semana/Dia/Mês` ao mudar `DATA`,
+existência da Excel Table `Tabela1` e validação do caso `31/07/2027` (total `144,333…`).
+
 ## Build e deploy (GitHub Pages)
 
 ```bash
@@ -122,11 +158,13 @@ Publique o conteúdo de `dist/` na branch `gh-pages` e ative em
 
 ```
 src/
-├── components/   # Header, Filters, Heatmap, HeatmapCell, Tooltip, Drawer, Login
+├── components/   # Header, Filters, Heatmap, HeatmapCell, Tooltip, Drawer, Login, WeekBars, ...
 ├── config/       # mockUsers.ts, heatmapConfig.ts
 ├── data/         # ocupacoes.json
 ├── hooks/        # useAuth.ts, useOcupacoes.ts
-├── services/     # storageService.ts (localStorage)
+├── services/
+│   ├── repository/   # DataRepository, LocalDataRepository
+│   └── export/       # exportColumns, exportWorkbook (+ teste)
 ├── utils/        # weekNumber.ts, calculations.ts, dateUtils.ts
 ├── types/        # index.ts
 └── styles/       # globals.css

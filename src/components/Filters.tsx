@@ -6,6 +6,8 @@ interface FiltersProps {
   filtros: Filtros;
   onChange: (filtros: Filtros) => void;
   onRestaurar: () => void;
+  onExportar: () => void;
+  exportando: boolean;
   projetosDisponiveis: string[];
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
@@ -18,6 +20,8 @@ export function Filters({
   filtros,
   onChange,
   onRestaurar,
+  onExportar,
+  exportando,
   projetosDisponiveis,
   viewMode,
   onViewModeChange,
@@ -97,6 +101,15 @@ export function Filters({
           title="Restaurar dados originais"
         >
           Restaurar dados
+        </button>
+
+        <button
+          onClick={onExportar}
+          disabled={exportando}
+          className="rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          title="Exportar a base completa para Excel"
+        >
+          {exportando ? 'Exportando...' : 'Exportar Excel'}
         </button>
       </div>
     </div>
