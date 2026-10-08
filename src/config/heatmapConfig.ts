@@ -43,3 +43,35 @@ export const MESES_EXTENSO = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
+
+/**
+ * Escala de cor RELATIVA — usada exclusivamente no gráfico lateral de semanas.
+ * NÃO usa as faixas fixas do heatmap.
+ * mínimo → verde claro | média → bege/laranja | máximo → vermelho
+ * Cores em HSL: [h, s%, l%]
+ */
+const ESCALA_RELATIVA = {
+  min: [135, 45, 60] as [number, number, number],
+  meio: [42, 85, 62] as [number, number, number],
+  max: [2, 72, 53] as [number, number, number],
+  neutra: 'hsl(210, 12%, 72%)',
+};
+
+function interpolarHsl(a: [number, number, number], b: [number, number, number], t: number): string {
+  const h = a[0] + (b[0] - a[0]) * t;
+  const s = a[1] + (b[1] - a[1]) * t;
+  const l = a[2] + (b[2] - a[2]) * t;
+  return `hsl(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l.toFixed(1)}%)`;
+}
+
+export function getCorRelativa(valor: number, min: number, media: number, max: number): string {
+  if (!(max > min)) return ESCALA_RELATIVA.neutra;
+  const clamp = (t: number) => Math.max(0, Math.min(1, t));
+
+  if (valor <= media) {
+    const t = media > min ? (valor - min) / (media - min) : 0;
+    return interpolarHsl(ESCALA_RELATIVA.min, ESCALA_RELATIVA.meio, clamp(t));
+  }
+  const t = max > media ? (valor - media) / (max - media) : 1;
+  return interpolarHsl(ESCALA_RELATIVA.meio, ESCALA_RELATIVA.max, clamp(t));
+}

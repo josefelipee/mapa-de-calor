@@ -17,12 +17,14 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 
 - Login mock por e-mail (sem senha)
 - Heatmap em **dois blocos semestrais** lado a lado (jan–jun / jul–dez)
-- **Gráfico lateral** de total por semana (painel complementar)
+- **Gráfico lateral** de total por semana com **escala de cor relativa** (mín→verde, média→laranja, máx→vermelho)
+- Clique numa semana do gráfico **destaca** a semana no heatmap (sem filtrar), com scroll automático
 - Filtros de **Projeto/Conteúdo** (busca), **data inicial**, **data final** e **tipo**
 - Alternância **Visão Macro / Detalhada**
-- Hover na célula com composição (conteúdos agrupados e ordenados)
+  - **Macro:** célula compacta com o percentual
+  - **Detalhada:** célula expandida com **Top 6 projetos + "Outros N"** (clique abre o Drawer/Resumo)
+- Hover na célula com **tooltip** (Floating UI: flip/shift, nunca sai da viewport)
 - Clique na célula abre o **Drawer** com abas **Resumo** e **Registros**
-- Aba Resumo: composição agrupada por projeto (Macro agrupa "Outros"; Detalhada lista tudo)
 - Aba Registros: registros individuais + edição da linha completa
 - Heatmap/tooltip/totais recalculam imediatamente
 - Legenda de cores visível

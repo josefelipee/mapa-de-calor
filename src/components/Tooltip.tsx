@@ -1,3 +1,6 @@
+import { useLayoutEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
 import type { DiaCalculated, ConteudoAgregado } from '../types';
 import { formatDataBR } from '../utils/dateUtils';
 import { formatPercent } from '../config/heatmapConfig';
@@ -5,14 +8,43 @@ import { formatPercent } from '../config/heatmapConfig';
 interface TooltipProps {
   dia: DiaCalculated;
   conteudos: ConteudoAgregado[];
-  style: React.CSSProperties;
+  x: number;
+  y: number;
 }
 
-export function Tooltip({ dia, conteudos, style }: TooltipProps) {
-  return (
+export function Tooltip({ dia, conteudos, x, y }: TooltipProps) {
+  const virtualRef = useMemo(
+    () => ({
+      getBoundingClientRect: () => ({
+        x,
+        y,
+        top: y,
+        left: x,
+        right: x,
+        bottom: y,
+        width: 0,
+        height: 0,
+      }),
+    }),
+    [x, y]
+  );
+
+  const { refs, floatingStyles } = useFloating({
+    strategy: 'fixed',
+    placement: 'right-start',
+    middleware: [offset(14), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  });
+
+  useLayoutEffect(() => {
+    refs.setPositionReference(virtualRef);
+  }, [refs, virtualRef]);
+
+  return createPortal(
     <div
-      className="pointer-events-none fixed z-50 min-w-[280px] max-w-sm rounded-lg border border-gray-200 bg-white p-3 shadow-xl"
-      style={style}
+      ref={refs.setFloating}
+      style={floatingStyles}
+      className="pointer-events-none z-[100] min-w-[280px] max-w-sm rounded-lg border border-gray-200 bg-white p-3 shadow-xl"
     >
       <div className="mb-2 border-b border-gray-100 pb-2">
         <p className="text-sm font-semibold text-gray-900">{formatDataBR(dia.data)}</p>
@@ -48,6 +80,7 @@ export function Tooltip({ dia, conteudos, style }: TooltipProps) {
           </tr>
         </tfoot>
       </table>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -24,6 +24,7 @@ function App() {
   const { dias, semanas, semanasNoIntervalo, projetosDisponiveis, atualizarRegistro, restaurar } =
     useOcupacoes(filtros);
   const [selectedData, setSelectedData] = useState<string | null>(null);
+  const [semanaSelecionada, setSemanaSelecionada] = useState<number | null>(null);
 
   if (!user) {
     return <Login onLogin={login} />;
@@ -54,9 +55,21 @@ function App() {
         </div>
 
         <div className="mt-2 flex gap-3">
-          <WeekBars semanasNoIntervalo={semanasNoIntervalo} semanas={semanas} />
+          <WeekBars
+            semanasNoIntervalo={semanasNoIntervalo}
+            semanas={semanas}
+            semanaSelecionada={semanaSelecionada}
+            onSemanaClick={semana =>
+              setSemanaSelecionada(prev => (prev === semana ? null : semana))
+            }
+          />
           <div className="min-w-0 flex-1">
-            <Heatmap semanas={semanas} onCellClick={dia => setSelectedData(dia.data)} />
+            <Heatmap
+              semanas={semanas}
+              onCellClick={dia => setSelectedData(dia.data)}
+              viewMode={viewMode}
+              semanaSelecionada={semanaSelecionada}
+            />
           </div>
         </div>
       </main>
