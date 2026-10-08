@@ -1,4 +1,4 @@
-import type { Ocupacao, DiaCalculated, SemanaCalculated, ConteudoAgregado } from '../types';
+import type { Ocupacao, DiaCalculated, SemanaCalculated, ConteudoAgregado, SemanaMetricas } from '../types';
 import { getWeekNumber, getWeekday } from './weekNumber';
 import { getAno, getMes, getNomeMes, parseData } from './dateUtils';
 import { CAPACIDADE } from '../config/heatmapConfig';
@@ -114,4 +114,58 @@ export function getSemanasDoIntervalo(dataInicial: string, dataFinal: string): n
     semanas.add(getWeekNumber(new Date(t)));
   }
   return Array.from(semanas).sort((a, b) => a - b);
+}
+
+function formatISODataUTC(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Calcula, por semana do ano, os três indicadores usados no gráfico lateral,
+ * considerando apenas os dias dentro de [dataInicial, dataFinal]:
+ * - total: soma dos percentuais diários (dias sem dado = 0)
+ * - media: média dos percentuais diários (todos os dias do intervalo)
+ * - pico: maior percentual diário e a data em que ocorreu
+ */
+export function calcularMetricasSemanais(
+  dias: Map<string, DiaCalculated>,
+  dataInicial: string,
+  dataFinal: string
+): SemanaMetricas[] {
+  const inicio = parseData(dataInicial);
+  const fim = parseData(dataFinal);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) return [];
+
+  const acc = new Map<number, { total: number; n: number; pico: number; picoData: string | null }>();
+
+  for (let t = inicio.getTime(); t <= fim.getTime(); t += 86400000) {
+    const dia = dias.get(formatISODataUTC(new Date(t)));
+    const percentual = dia ? dia.percentual : 0;
+    const semana = getWeekNumber(new Date(t));
+
+    let a = acc.get(semana);
+    if (!a) {
+      a = { total: 0, n: 0, pico: 0, picoData: null };
+      acc.set(semana, a);
+    }
+    a.total += percentual;
+    a.n += 1;
+    if (dia && percentual > a.pico) {
+      a.pico = percentual;
+      a.picoData = dia.data;
+    }
+  }
+
+  return Array.from(acc.entries())
+    .map(([semana, a]) => ({
+      semana,
+      total: a.total,
+      media: a.n > 0 ? a.total / a.n : 0,
+      pico: a.pico,
+      picoData: a.picoData,
+    }))
+    .sort((x, y) => x.semana - y.semana);
 }

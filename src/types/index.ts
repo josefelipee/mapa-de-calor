@@ -29,7 +29,20 @@ export interface Filtros {
   dataInicial: string;
   dataFinal: string;
   tipo: string;
-  projeto: string;
+  /** Projetos selecionados. Array vazio = "Todos os projetos" (sem restrição). */
+  projetos: string[];
+}
+
+export interface SemanaMetricas {
+  semana: number;
+  /** Soma dos percentuais diários da semana (= SUM/102*100). */
+  total: number;
+  /** Média dos percentuais diários (dias no intervalo; sem dado = 0%). */
+  media: number;
+  /** Maior percentual diário da semana. */
+  pico: number;
+  /** Data do pico (YYYY-MM-DD) ou null. */
+  picoData: string | null;
 }
 
 export type ViewMode = 'macro' | 'detalhada';

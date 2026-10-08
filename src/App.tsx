@@ -15,7 +15,7 @@ const FILTROS_INICIAIS: Filtros = {
   dataInicial: '2027-01-01',
   dataFinal: '2027-12-31',
   tipo: 'TODOS',
-  projeto: 'TODOS',
+  projetos: [],
 };
 
 function App() {
@@ -23,7 +23,7 @@ function App() {
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIAIS);
   const [viewMode, setViewMode] = useState<ViewMode>('macro');
   const [exportando, setExportando] = useState(false);
-  const { ocupacoes, dias, semanas, semanasNoIntervalo, projetosDisponiveis, atualizarRegistro, restaurar } =
+  const { ocupacoes, dias, semanas, metricasSemanais, projetosDisponiveis, atualizarRegistro, restaurar } =
     useOcupacoes(filtros);
   const [selectedData, setSelectedData] = useState<string | null>(null);
   const [semanaSelecionada, setSemanaSelecionada] = useState<number | null>(null);
@@ -69,8 +69,7 @@ function App() {
 
         <div className="mt-2 flex gap-3">
           <WeekBars
-            semanasNoIntervalo={semanasNoIntervalo}
-            semanas={semanas}
+            metricas={metricasSemanais}
             semanaSelecionada={semanaSelecionada}
             onSemanaClick={semana =>
               setSemanaSelecionada(prev => (prev === semana ? null : semana))

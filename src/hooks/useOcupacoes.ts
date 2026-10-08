@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { Ocupacao, Filtros } from '../types';
 import { dataRepository } from '../services/repository';
-import { agruparPorDia, agruparPorSemana, getSemanasDoIntervalo } from '../utils/calculations';
+import { agruparPorDia, agruparPorSemana, calcularMetricasSemanais } from '../utils/calculations';
 
 export function useOcupacoes(filtros: Filtros) {
   const [ocupacoes, setOcupacoes] = useState<Ocupacao[]>(() => dataRepository.getAll());
@@ -28,26 +28,27 @@ export function useOcupacoes(filtros: Filtros) {
   }, [ocupacoes, filtros.dataInicial, filtros.dataFinal, filtros.tipo]);
 
   const dadosFiltrados = useMemo(() => {
+    const temFiltroProjeto = filtros.projetos.length > 0;
     return ocupacoes.filter(o => {
       if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) return false;
       if (filtros.tipo !== 'TODOS' && o.tipo !== filtros.tipo) return false;
-      if (filtros.projeto !== 'TODOS' && o.projeto !== filtros.projeto) return false;
+      if (temFiltroProjeto && !filtros.projetos.includes(o.projeto)) return false;
       return true;
     });
-  }, [ocupacoes, filtros.dataInicial, filtros.dataFinal, filtros.tipo, filtros.projeto]);
+  }, [ocupacoes, filtros.dataInicial, filtros.dataFinal, filtros.tipo, filtros.projetos]);
 
   const dias = useMemo(() => agruparPorDia(dadosFiltrados), [dadosFiltrados]);
   const semanas = useMemo(() => agruparPorSemana(Array.from(dias.values())), [dias]);
-  const semanasNoIntervalo = useMemo(
-    () => getSemanasDoIntervalo(filtros.dataInicial, filtros.dataFinal),
-    [filtros.dataInicial, filtros.dataFinal]
+  const metricasSemanais = useMemo(
+    () => calcularMetricasSemanais(dias, filtros.dataInicial, filtros.dataFinal),
+    [dias, filtros.dataInicial, filtros.dataFinal]
   );
 
   return {
     ocupacoes,
     dias,
     semanas,
-    semanasNoIntervalo,
+    metricasSemanais,
     projetosDisponiveis,
     atualizarRegistro,
     restaurar,
