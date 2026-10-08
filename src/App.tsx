@@ -5,30 +5,37 @@ import { Login } from './components/Login';
 import { Header } from './components/Header';
 import { Filters } from './components/Filters';
 import { Heatmap } from './components/Heatmap';
+import { WeekBars } from './components/WeekBars';
+import { Legend } from './components/Legend';
 import { Drawer } from './components/Drawer';
-import type { DiaCalculated, Filtros } from './types';
+import type { Filtros, ViewMode } from './types';
 
 const FILTROS_INICIAIS: Filtros = {
   dataInicial: '2027-01-01',
   dataFinal: '2027-12-31',
   tipo: 'TODOS',
+  projeto: 'TODOS',
 };
 
 function App() {
   const { user, login, logout } = useAuth();
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIAIS);
-  const { semanas, atualizarOcupacao, restaurar } = useOcupacoes(filtros);
-  const [selectedDia, setSelectedDia] = useState<DiaCalculated | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('macro');
+  const { dias, semanas, semanasNoIntervalo, projetosDisponiveis, atualizarRegistro, restaurar } =
+    useOcupacoes(filtros);
+  const [selectedData, setSelectedData] = useState<string | null>(null);
 
   if (!user) {
     return <Login onLogin={login} />;
   }
 
+  const diaSelecionado = selectedData ? dias.get(selectedData) ?? null : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header user={user} onLogout={logout} />
 
-      <main className="flex-1 px-4 py-5 lg:px-6">
+      <main className="flex-1 px-4 py-3">
         <Filters
           filtros={filtros}
           onChange={setFiltros}
@@ -37,20 +44,29 @@ function App() {
               restaurar();
             }
           }}
+          projetosDisponiveis={projetosDisponiveis}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
 
-        <div className="mt-5">
-          <Heatmap semanas={semanas} onCellClick={setSelectedDia} />
+        <div className="mt-2 flex justify-end">
+          <Legend compact />
+        </div>
+
+        <div className="mt-2 flex gap-3">
+          <WeekBars semanasNoIntervalo={semanasNoIntervalo} semanas={semanas} />
+          <div className="min-w-0 flex-1">
+            <Heatmap semanas={semanas} onCellClick={dia => setSelectedData(dia.data)} />
+          </div>
         </div>
       </main>
 
       <Drawer
-        dia={selectedDia}
+        dia={diaSelecionado}
         user={user}
-        onClose={() => setSelectedDia(null)}
-        onSave={(id, novoValor) => {
-          atualizarOcupacao(id, novoValor);
-        }}
+        viewMode={viewMode}
+        onClose={() => setSelectedData(null)}
+        onSave={atualizarRegistro}
       />
     </div>
   );

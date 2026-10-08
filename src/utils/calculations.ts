@@ -1,6 +1,6 @@
 import type { Ocupacao, DiaCalculated, SemanaCalculated, ConteudoAgregado } from '../types';
 import { getWeekNumber, getWeekday } from './weekNumber';
-import { getAno, getMes, getNomeMes } from './dateUtils';
+import { getAno, getMes, getNomeMes, parseData } from './dateUtils';
 import { CAPACIDADE } from '../config/heatmapConfig';
 
 export function calcularPercentual(valor: number): number {
@@ -27,7 +27,7 @@ export function agruparPorDia(ocupacoes: Ocupacao[]): Map<string, DiaCalculated>
       dias.set(o.data, dia);
     }
     dia.registros.push(o);
-    dia.total += o.valor;
+    dia.total += o.novaColunaOrcada;
   }
 
   for (const dia of dias.values()) {
@@ -70,7 +70,7 @@ export function agruparPorSemana(dias: DiaCalculated[]): SemanaCalculated[] {
 export function agruparConteudosPorDia(dia: DiaCalculated): ConteudoAgregado[] {
   const map = new Map<string, number>();
   for (const r of dia.registros) {
-    map.set(r.projeto, (map.get(r.projeto) || 0) + r.valor);
+    map.set(r.projeto, (map.get(r.projeto) || 0) + r.novaColunaOrcada);
   }
 
   return Array.from(map.entries())
@@ -98,4 +98,20 @@ export function getSemanasPorMes(semanas: SemanaCalculated[]): Map<string, Seman
   }
 
   return map;
+}
+
+/**
+ * Retorna todos os números de semana presentes no intervalo [dataInicial, dataFinal],
+ * inclusive semanas sem dados (para o gráfico lateral exibir 0%).
+ */
+export function getSemanasDoIntervalo(dataInicial: string, dataFinal: string): number[] {
+  const inicio = parseData(dataInicial);
+  const fim = parseData(dataFinal);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) return [];
+
+  const semanas = new Set<number>();
+  for (let t = inicio.getTime(); t <= fim.getTime(); t += 86400000) {
+    semanas.add(getWeekNumber(new Date(t)));
+  }
+  return Array.from(semanas).sort((a, b) => a - b);
 }

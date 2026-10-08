@@ -6,21 +6,11 @@ const excelPath = 'C:\\Projetos\\mapa de calor\\Controles ION 2027.xlsx';
 const tempBase = 'C:\\Users\\jofelipe\\AppData\\Local\\Temp\\opencode\\xlsx_inspect';
 const outputPath = 'C:\\Projetos\\mapa de calor\\src\\data\\ocupacoes.json';
 
-// Re-extract xlsx if needed
-function ensureExtracted() {
-  if (!fs.existsSync(path.join(tempBase, 'xl', 'worksheets', 'sheet2.xml'))) {
-    const admZip = require('adm-zip');
-    const zip = new admZip(excelPath);
-    zip.extractAllTo(tempBase, true);
-  }
-}
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-// Use powershell Expand-Archive since adm-zip may not be installed
 function extractWithPowerShell() {
   if (fs.existsSync(path.join(tempBase, 'xl', 'worksheets', 'sheet2.xml'))) return;
-  if (fs.existsSync(tempBase)) {
-    fs.rmSync(tempBase, { recursive: true, force: true });
-  }
+  if (fs.existsSync(tempBase)) fs.rmSync(tempBase, { recursive: true, force: true });
   fs.mkdirSync(tempBase, { recursive: true });
   const zipPath = path.join(tempBase, 'temp.zip');
   fs.copyFileSync(excelPath, zipPath);
@@ -53,11 +43,8 @@ function parseTableRows(xml, shared) {
       let value = null;
       if (valMatch) {
         value = valMatch[1];
-        if (typeMatch && typeMatch[1] === 's') {
-          value = shared[parseInt(value, 10)] || '';
-        } else if (/^-?\d+(\.\d+)?$/.test(value)) {
-          value = parseFloat(value);
-        }
+        if (typeMatch && typeMatch[1] === 's') value = shared[parseInt(value, 10)] || '';
+        else if (/^-?\d+(\.\d+)?$/.test(value)) value = parseFloat(value);
       }
       cells.push(value);
     }
@@ -66,83 +53,111 @@ function parseTableRows(xml, shared) {
   return rows;
 }
 
-function excelSerialToDate(serial) {
-  // Excel base date is 1899-12-30. Use noon UTC to avoid timezone issues.
-  const base = new Date(Date.UTC(1899, 11, 30, 12, 0, 0));
-  const date = new Date(base.getTime() + serial * 24 * 60 * 60 * 1000);
-  return date;
-}
+const pad = n => String(n).padStart(2, '0');
 
-function formatDate(date) {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(date.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+function excelSerialToDateTime(serial) {
+  if (typeof serial !== 'number') return serial == null ? '' : String(serial);
+  const totalMinutes = Math.round(serial * 1440);
+  const d = new Date(Date.UTC(1899, 11, 30, 0, 0, 0) + totalMinutes * 60000);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
 function parseData(value) {
   if (typeof value === 'number') {
-    const date = excelSerialToDate(value);
-    return formatDate(date);
+    const totalMinutes = Math.round(value * 1440);
+    const d = new Date(Date.UTC(1899, 11, 30, 0, 0, 0) + totalMinutes * 60000);
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
   }
   if (typeof value === 'string') {
     const [d, m, y] = value.split('/').map(Number);
-    if (d && m && y) {
-      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    }
+    if (d && m && y) return `${y}-${pad(m)}-${pad(d)}`;
   }
   return null;
 }
 
-const stringsXml = fs.readFileSync(stringsPath, 'utf8');
-const shared = parseSharedStrings(stringsXml);
-const sheetXml = fs.readFileSync(sheetPath, 'utf8');
-const allRows = parseTableRows(sheetXml, shared);
+function dateFromISO(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+}
 
+function getWeekday(date) {
+  const jsDay = date.getUTCDay();
+  return jsDay === 0 ? 7 : jsDay;
+}
+
+function getWeekStart(date) {
+  const weekday = getWeekday(date);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - (weekday - 1), 12, 0, 0));
+}
+
+function getWeekNumber(date) {
+  const year = date.getUTCFullYear();
+  const firstDayOfYear = new Date(Date.UTC(year, 0, 1, 12, 0, 0));
+  const firstWeekStart = getWeekStart(firstDayOfYear);
+  const daysDiff = Math.floor((date.getTime() - firstWeekStart.getTime()) / 86400000);
+  return Math.floor(daysDiff / 7) + 1;
+}
+
+const shared = parseSharedStrings(fs.readFileSync(stringsPath, 'utf8'));
+const allRows = parseTableRows(fs.readFileSync(sheetPath, 'utf8'), shared);
 const header = allRows[0];
-const dataIdx = header.indexOf('DATA');
-const projetoIdx = header.indexOf('DS_PROJETO_ENGENHARIA_PROJETO_PRODUTO');
-const tipoIdx = header.indexOf('Tipo');
-const valorIdx = header.indexOf('Nova Coluna Orçada');
+const idx = name => header.indexOf(name);
+
+const iInicio = idx('DT_HR_INICIO_RECURSO');
+const iFim = idx('DT_HR_FIM_RECURSO');
+const iProjeto = idx('DS_PROJETO_ENGENHARIA_PROJETO_PRODUTO');
+const iTipo = idx('Tipo');
+const iID = idx('ID');
+const iNmRecurso = idx('NM_RECURSO');
+const iStatus = idx('Status');
+const iTipo2 = idx('Tipo2');
+const iSite = idx('SITE');
+const iData = idx('DATA');
+const iHora2 = idx('Hora2');
+const iHoraOrcada = idx('Hora Orçada');
+const iNovaColuna = idx('Nova Coluna Orçada');
 
 const ocupacoes = [];
 let invalidCount = 0;
 
 for (let i = 1; i < allRows.length; i++) {
   const row = allRows[i];
-  const data = parseData(row[dataIdx]);
-  const projeto = row[projetoIdx];
-  const tipo = row[tipoIdx];
-  const valor = row[valorIdx];
-
-  if (!data || !projeto || typeof valor !== 'number' || isNaN(valor)) {
+  const data = parseData(row[iData]);
+  const valor = row[iNovaColuna];
+  if (!data || typeof valor !== 'number' || isNaN(valor)) {
     invalidCount++;
     continue;
   }
-
+  const dateObj = dateFromISO(data);
   ocupacoes.push({
     id: uuidv4(),
+    dtHrInicioRecurso: excelSerialToDateTime(row[iInicio]),
+    dtHrFimRecurso: excelSerialToDateTime(row[iFim]),
+    semana: getWeekNumber(dateObj),
+    dia: getWeekday(dateObj),
+    mes: MESES[dateObj.getUTCMonth()],
+    projeto: String(row[iProjeto] || '').trim(),
+    tipo: String(row[iTipo] || 'SEM CONTROLE').trim(),
+    idPlanilha: String(row[iID] || '').trim(),
+    nmRecurso: String(row[iNmRecurso] || '').trim(),
+    status: String(row[iStatus] || '').trim(),
+    tipo2: String(row[iTipo2] || '').trim(),
+    site: String(row[iSite] || '').trim(),
     data,
-    projeto: String(projeto).trim(),
-    tipo: String(tipo || 'SEM CONTROLE').trim(),
-    valor,
+    hora2: typeof row[iHora2] === 'number' ? row[iHora2] : null,
+    horaOrcada: typeof row[iHoraOrcada] === 'number' ? row[iHoraOrcada] : null,
+    novaColunaOrcada: valor,
   });
 }
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, JSON.stringify(ocupacoes, null, 2));
+fs.writeFileSync(outputPath, JSON.stringify(ocupacoes));
 
 console.log('Total de registros:', ocupacoes.length);
 console.log('Registros ignorados:', invalidCount);
+console.log('Tamanho do arquivo:', (fs.statSync(outputPath).size / 1024 / 1024).toFixed(2), 'MB');
 
-// Validação 31/07/2027
 const jul31 = ocupacoes.filter(o => o.data === '2027-07-31');
-const total = jul31.reduce((s, o) => s + o.valor, 0);
+const total = jul31.reduce((s, o) => s + o.novaColunaOrcada, 0);
 console.log('31/07/2027 registros:', jul31.length, 'total:', total, 'percentual:', (total / 102 * 100).toFixed(1) + '%');
-
-// Tipos únicos
-const tipos = {};
-for (const o of ocupacoes) {
-  tipos[o.tipo] = (tipos[o.tipo] || 0) + 1;
-}
-console.log('Tipos:', tipos);
+console.log('Amostra:', JSON.stringify(ocupacoes.find(o => o.data === '2027-07-31'), null, 2));

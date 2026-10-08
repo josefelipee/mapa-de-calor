@@ -16,12 +16,16 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 ## Funcionalidades
 
 - Login mock por e-mail (sem senha)
-- Heatmap por mês → semana → dia da semana
-- Filtros de **data inicial**, **data final** e **tipo**
+- Heatmap em **dois blocos semestrais** lado a lado (jan–jun / jul–dez)
+- **Gráfico lateral** de total por semana (painel complementar)
+- Filtros de **Projeto/Conteúdo** (busca), **data inicial**, **data final** e **tipo**
+- Alternância **Visão Macro / Detalhada**
 - Hover na célula com composição (conteúdos agrupados e ordenados)
-- Clique na célula abre um **Drawer** lateral
-- Editor altera registros individualmente e salva localmente
+- Clique na célula abre o **Drawer** com abas **Resumo** e **Registros**
+- Aba Resumo: composição agrupada por projeto (Macro agrupa "Outros"; Detalhada lista tudo)
+- Aba Registros: registros individuais + edição da linha completa
 - Heatmap/tooltip/totais recalculam imediatamente
+- Legenda de cores visível
 - Botão **Restaurar dados** (limpa `localStorage`)
 
 ## Regras de cálculo
@@ -83,6 +87,11 @@ Todas as faixas ficam centralizadas em
 ## Dados
 
 - Base gerada da planilha `Tabela1` (aba "Base") → [`src/data/ocupacoes.json`](src/data/ocupacoes.json)
+- Cada registro preserva a **linha completa** da Tabela1:
+  `dtHrInicioRecurso`, `dtHrFimRecurso`, `semana`, `dia`, `mes`, `projeto`,
+  `tipo`, `idPlanilha`, `nmRecurso`, `status`, `tipo2`, `site`, `data`,
+  `hora2`, `horaOrcada`, `novaColunaOrcada`
+- `semana`, `dia` e `mes` são **recalculados a partir de `data`** (nunca editados manualmente)
 - Script de conversão: [`scripts/convert.cjs`](scripts/convert.cjs)
 - Script de validação: [`scripts/validate.cjs`](scripts/validate.cjs)
 
