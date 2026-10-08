@@ -11,12 +11,11 @@ export function Header({ user, onLogout }: HeaderProps) {
     <header className="bg-corporate-900 text-white shadow-md">
       <div className="flex h-14 items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-3">
-          <div className="grid grid-cols-2 gap-0.5">
-            <span className="h-2 w-2 rounded-[1px] bg-white/90" />
-            <span className="h-2 w-2 rounded-[1px] bg-white/90" />
-            <span className="h-2 w-2 rounded-[1px] bg-white/90" />
-            <span className="h-2 w-2 rounded-[1px] bg-white/50" />
-          </div>
+          <img
+            src={`${import.meta.env.BASE_URL}logo.png`}
+            alt="Mapa de Calor"
+            className="h-8 w-8 rounded-md object-contain"
+          />
           <div className="leading-tight">
             <h1 className="text-sm font-bold tracking-wider">{APP_TITLE}</h1>
             <p className="text-[10px] uppercase tracking-widest text-gray-400">{APP_SUBTITLE}</p>
