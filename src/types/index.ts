@@ -25,12 +25,16 @@ export interface User {
   role: UserRole;
 }
 
+export type SelectionMode = 'all' | 'custom';
+
 export interface Filtros {
   dataInicial: string;
   dataFinal: string;
   tipo: string;
-  /** Projetos selecionados. Array vazio = "Todos os projetos" (sem restrição). */
-  projetos: string[];
+  /** 'all' = todos os projetos do período/tipo; 'custom' = apenas selectedProjects. */
+  selectionMode: SelectionMode;
+  /** Projetos selecionados quando selectionMode = 'custom'. Vazio = nenhum. */
+  selectedProjects: string[];
 }
 
 export interface SemanaMetricas {

@@ -1,30 +1,55 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { SelectionMode } from '../types';
+import {
+  desmarcarTodos,
+  filtrarProjetos,
+  rotuloSelecao,
+  selecionarTodos,
+  toggleProjeto,
+  type ProjectSelection,
+} from '../utils/projectSelection';
 
 interface ProjectFilterProps {
-  selected: string[];
+  selectionMode: SelectionMode;
+  selectedProjects: string[];
   options: string[];
-  onChange: (selected: string[]) => void;
+  onChange: (selectionMode: SelectionMode, selectedProjects: string[]) => void;
 }
 
-export function ProjectFilter({ selected, options, onChange }: ProjectFilterProps) {
+function CheckIndicator({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
+        checked ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'
+      }`}
+    >
+      {checked && (
+        <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M2 6.5l2.5 2.5L10 3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+export function ProjectFilter({
+  selectionMode,
+  selectedProjects,
+  options,
+  onChange,
+}: ProjectFilterProps) {
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState('');
   const ref = useRef<HTMLDivElement>(null);
-  const allRef = useRef<HTMLInputElement>(null);
 
-  // Array vazio = "Todos". Seleção efetiva = tudo selecionado.
+  const atual: ProjectSelection = { selectionMode, selectedProjects };
+  const isAll = selectionMode === 'all';
+  const nenhum = selectionMode === 'custom' && selectedProjects.length === 0;
+
   const selecionados = useMemo(
-    () => (selected.length === 0 ? new Set(options) : new Set(selected)),
-    [selected, options]
+    () => (isAll ? new Set(options) : new Set(selectedProjects)),
+    [isAll, options, selectedProjects]
   );
-
-  const efetivos = options.filter(o => selecionados.has(o));
-  const todosSelecionados = options.length > 0 && efetivos.length === options.length;
-  const parcial = efetivos.length > 0 && !todosSelecionados;
-
-  useEffect(() => {
-    if (allRef.current) allRef.current.indeterminate = parcial;
-  }, [parcial]);
 
   useEffect(() => {
     function handleClickFora(e: MouseEvent) {
@@ -38,29 +63,13 @@ export function ProjectFilter({ selected, options, onChange }: ProjectFilterProp
     if (!open) setBusca('');
   }, [open]);
 
-  const filtrados = options.filter(o => o.toLowerCase().includes(busca.trim().toLowerCase()));
+  const label = rotuloSelecao(atual);
+  const filtrados = filtrarProjetos(options, busca);
 
-  const label =
-    todosSelecionados || efetivos.length === 0
-      ? 'Todos os projetos'
-      : efetivos.length === 1
-      ? efetivos[0]
-      : `${efetivos.length} projetos selecionados`;
-
-  const aplicar = (conjunto: Set<string>) => {
-    const arr = options.filter(o => conjunto.has(o));
-    onChange(arr.length === options.length ? [] : arr);
-  };
-
-  const toggle = (p: string) => {
-    const set = new Set(efetivos);
-    if (set.has(p)) set.delete(p);
-    else set.add(p);
-    aplicar(set);
-  };
-
-  const selecionarTodos = () => onChange([]);
-  const limparSelecao = () => onChange([]);
+  const aplicar = (sel: ProjectSelection) => onChange(sel.selectionMode, sel.selectedProjects);
+  const doSelecionarTodos = () => aplicar(selecionarTodos());
+  const doDesmarcarTodos = () => aplicar(desmarcarTodos());
+  const toggle = (p: string) => aplicar(toggleProjeto(atual, p, options));
 
   return (
     <div ref={ref} className="relative">
@@ -69,7 +78,7 @@ export function ProjectFilter({ selected, options, onChange }: ProjectFilterProp
         onClick={() => setOpen(o => !o)}
         className="flex w-64 items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-left text-sm text-gray-700 hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       >
-        <span className="truncate" title={label}>
+        <span className={`truncate ${nenhum ? 'text-gray-400' : ''}`} title={label}>
           {label}
         </span>
         <svg className="h-3.5 w-3.5 shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -83,6 +92,27 @@ export function ProjectFilter({ selected, options, onChange }: ProjectFilterProp
 
       {open && (
         <div className="absolute z-30 mt-1 w-80 rounded-md border border-gray-200 bg-white shadow-xl">
+          {/* Ações fixas — sempre visíveis, fora da área de scroll */}
+          <div className="border-b border-gray-100 py-1">
+            <button
+              type="button"
+              onClick={doSelecionarTodos}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <CheckIndicator checked={isAll} />
+              Selecionar todos
+            </button>
+            <button
+              type="button"
+              onClick={doDesmarcarTodos}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <CheckIndicator checked={nenhum} />
+              Desmarcar todos
+            </button>
+          </div>
+
+          {/* Busca (não altera seleção) */}
           <div className="flex items-center gap-2 border-b border-gray-100 px-2.5 py-2">
             <svg className="h-3.5 w-3.5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
               <path
@@ -100,19 +130,7 @@ export function ProjectFilter({ selected, options, onChange }: ProjectFilterProp
             />
           </div>
 
-          <div className="border-b border-gray-100">
-            <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              <input
-                ref={allRef}
-                type="checkbox"
-                checked={todosSelecionados}
-                onChange={selecionarTodos}
-                className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              Selecionar todos
-            </label>
-          </div>
-
+          {/* Lista */}
           <ul className="max-h-64 overflow-y-auto py-1 scrollbar-thin">
             {filtrados.length === 0 && (
               <li className="px-3 py-2 text-xs text-gray-400">Nenhum projeto encontrado.</li>
@@ -133,16 +151,6 @@ export function ProjectFilter({ selected, options, onChange }: ProjectFilterProp
               </li>
             ))}
           </ul>
-
-          <div className="border-t border-gray-100 px-2 py-1.5">
-            <button
-              type="button"
-              onClick={limparSelecao}
-              className="w-full rounded px-2 py-1 text-left text-xs font-medium text-blue-600 hover:bg-blue-50"
-            >
-              Limpar seleção
-            </button>
-          </div>
         </div>
       )}
     </div>

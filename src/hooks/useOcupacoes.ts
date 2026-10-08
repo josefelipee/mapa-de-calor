@@ -28,14 +28,21 @@ export function useOcupacoes(filtros: Filtros) {
   }, [ocupacoes, filtros.dataInicial, filtros.dataFinal, filtros.tipo]);
 
   const dadosFiltrados = useMemo(() => {
-    const temFiltroProjeto = filtros.projetos.length > 0;
+    const filtraProjeto = filtros.selectionMode === 'custom';
     return ocupacoes.filter(o => {
       if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) return false;
       if (filtros.tipo !== 'TODOS' && o.tipo !== filtros.tipo) return false;
-      if (temFiltroProjeto && !filtros.projetos.includes(o.projeto)) return false;
+      if (filtraProjeto && !filtros.selectedProjects.includes(o.projeto)) return false;
       return true;
     });
-  }, [ocupacoes, filtros.dataInicial, filtros.dataFinal, filtros.tipo, filtros.projetos]);
+  }, [
+    ocupacoes,
+    filtros.dataInicial,
+    filtros.dataFinal,
+    filtros.tipo,
+    filtros.selectionMode,
+    filtros.selectedProjects,
+  ]);
 
   const dias = useMemo(() => agruparPorDia(dadosFiltrados), [dadosFiltrados]);
   const semanas = useMemo(() => agruparPorSemana(Array.from(dias.values())), [dias]);

@@ -15,7 +15,8 @@ const FILTROS_INICIAIS: Filtros = {
   dataInicial: '2027-01-01',
   dataFinal: '2027-12-31',
   tipo: 'TODOS',
-  projetos: [],
+  selectionMode: 'all',
+  selectedProjects: [],
 };
 
 function App() {

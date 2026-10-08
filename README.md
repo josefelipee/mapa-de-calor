@@ -24,7 +24,7 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
   - **Média:** média dos percentuais diários (dias no intervalo; sem dado = 0%)
   - **Pico:** maior percentual diário, com a data de ocorrência (tooltip mostra os três indicadores)
 - Clique numa semana do gráfico **destaca** a semana no heatmap (sem filtrar), com scroll automático; a seleção persiste ao trocar de modo
-- Filtro de **Projeto/Conteúdo** **multiselect pesquisável** (checkboxes, "Selecionar todos", "Limpar seleção")
+- Filtro de **Projeto/Conteúdo** **multiselect pesquisável**: ações fixas **Selecionar todos** / **Desmarcar todos**, busca que não altera a seleção. Estados explícitos: **Todos** (`selectionMode: all`), **Personalizado** (`custom` + lista) e **Nenhum** (`custom` + lista vazia).
 - Filtros de **data inicial**, **data final** e **tipo**
 - Alternância **Visão Macro / Detalhada**
   - **Macro:** célula compacta com o percentual
