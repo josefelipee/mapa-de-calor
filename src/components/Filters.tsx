@@ -6,7 +6,6 @@ import { TipoFilter } from './TipoFilter';
 interface FiltersProps {
   filtros: Filtros;
   onChange: (filtros: Filtros) => void;
-  onRestaurar: () => void;
   onExportar: () => void;
   exportando: boolean;
   projetosDisponiveis: string[];
@@ -23,7 +22,6 @@ const inputClass =
 export function Filters({
   filtros,
   onChange,
-  onRestaurar,
   onExportar,
   exportando,
   projetosDisponiveis,
@@ -122,14 +120,6 @@ export function Filters({
             ))}
           </div>
         </div>
-
-        <button
-          onClick={onRestaurar}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-          title="Restaurar dados originais"
-        >
-          Restaurar dados
-        </button>
 
         <button
           onClick={onExportar}

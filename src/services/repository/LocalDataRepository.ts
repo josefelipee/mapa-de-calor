@@ -1,24 +1,9 @@
 import type { Ocupacao } from '../../types';
 import type { DataRepository } from './DataRepository';
 import ocupacoesOriginais from '../../data/ocupacoes.json';
-import { getWeekNumber, getWeekday } from '../../utils/weekNumber';
-import { getNomeMes } from '../../utils/dateUtils';
-import { normalizarOcupacao } from '../../utils/ocupacao';
+import { prepararOcupacao } from '../../utils/ocupacao';
 
 const STORAGE_KEY = 'mapa-de-calor-ocupacoes';
-
-function recalcularDerivados(registro: Ocupacao): Ocupacao {
-  return {
-    ...registro,
-    semana: getWeekNumber(registro.data),
-    dia: getWeekday(registro.data),
-    mes: getNomeMes(registro.data),
-  };
-}
-
-function preparar(registro: Ocupacao): Ocupacao {
-  return recalcularDerivados(normalizarOcupacao(registro));
-}
 
 function ehRegistroValido(o: unknown): o is Ocupacao {
   if (!o || typeof o !== 'object') return false;
@@ -32,56 +17,58 @@ function ehRegistroValido(o: unknown): o is Ocupacao {
   );
 }
 
+/** Implementação local (JSON + localStorage) — não é a ativa (ver FirestoreDataRepository). */
 export class LocalDataRepository implements DataRepository {
+  private listeners = new Set<(registros: Ocupacao[]) => void>();
+
   private carregar(): Ocupacao[] {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         const parsed: unknown = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(ehRegistroValido)) {
-          return (parsed as Ocupacao[]).map(normalizarOcupacao);
+          return (parsed as Ocupacao[]).map(prepararOcupacao);
         }
         localStorage.removeItem(STORAGE_KEY);
       } catch {
-        console.error('Erro ao ler localStorage; usando base original.');
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-    return (ocupacoesOriginais as Ocupacao[]).map(normalizarOcupacao);
+    return (ocupacoesOriginais as Ocupacao[]).map(prepararOcupacao);
   }
 
   private salvar(ocupacoes: Ocupacao[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ocupacoes));
   }
 
-  getAll(): Ocupacao[] {
-    return this.carregar();
+  private emitir(): void {
+    const dados = this.carregar();
+    this.listeners.forEach(l => l(dados));
   }
 
-  getById(id: string): Ocupacao | undefined {
-    return this.carregar().find(o => o.id === id);
+  subscribe(onData: (registros: Ocupacao[]) => void): () => void {
+    this.listeners.add(onData);
+    onData(this.carregar());
+    return () => {
+      this.listeners.delete(onData);
+    };
   }
 
-  update(registro: Ocupacao): Ocupacao[] {
-    const atualizadas = this.carregar().map(o =>
-      o.id === registro.id ? preparar(registro) : o
-    );
+  async update(registro: Ocupacao): Promise<void> {
+    const atualizadas = this.carregar().map(o => (o.id === registro.id ? prepararOcupacao(registro) : o));
     this.salvar(atualizadas);
-    return atualizadas;
+    this.emitir();
   }
 
-  updateMany(registros: Ocupacao[]): Ocupacao[] {
-    const porId = new Map(registros.map(r => [r.id, preparar(r)]));
+  async updateMany(registros: Ocupacao[]): Promise<void> {
+    const porId = new Map(registros.map(r => [r.id, prepararOcupacao(r)]));
     const atualizadas = this.carregar().map(o => porId.get(o.id) ?? o);
     this.salvar(atualizadas);
-    return atualizadas;
+    this.emitir();
   }
 
-  reset(): void {
+  async reset(): Promise<void> {
     localStorage.removeItem(STORAGE_KEY);
-  }
-
-  exportAll(): Ocupacao[] {
-    return this.carregar();
+    this.emitir();
   }
 }

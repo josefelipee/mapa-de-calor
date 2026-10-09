@@ -12,8 +12,9 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 - Tailwind CSS
 - date-fns (apenas formatação de datas)
 - ExcelJS (exportação XLSX; import dinâmico)
+- **Firebase** (Hosting, Authentication OIDC, Cloud Firestore)
 - Vitest (testes)
-- GitHub Pages (publicação)
+- GitHub Pages (referência — não é mais o alvo de produção)
 
 ## Funcionalidades
 
@@ -145,22 +146,40 @@ Cobrem: 17 colunas na ordem correta, 7.233 registros, tipos (data/data-hora/núm
 preservação de `ID`, edição de `Nova Coluna Orçada`, recálculo de `Semana/Dia/Mês` ao mudar `DATA`,
 existência da Excel Table `Tabela1` e validação do caso `31/07/2027` (total `144,333…`).
 
-## Build e deploy (GitHub Pages)
+## Firebase (produção)
 
-```bash
-npm run build
-npm run deploy
+- **Hosting:** site `mapa-de-calor` → **https://mapa-de-calor.web.app**
+- **Firestore:** banco nomeado `mapa-de-calor` (`southamerica-east1`), coleção `ocupacoes` (1 documento por registro).
+- **Auth:** OIDC corporativo (provider `oidc.gestaodecapacidade`), reaproveitado do projeto `gglobo-pea-hdg-prd`.
+- **Perfis (app):** `editor`/`viewer` por e-mail (`src/config/mockUsers.ts`). **Rules** garantem escrita só para os e-mails de editor; leitura para autenticados.
+
+### Configuração (`.env`, não versionado)
+
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=gglobo-pea-hdg-prd.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=gglobo-pea-hdg-prd
+VITE_FIREBASE_STORAGE_BUCKET=gglobo-pea-hdg-prd.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_OIDC_PROVIDER_ID=oidc.gestaodecapacidade
+VITE_FIRESTORE_DATABASE_ID=mapa-de-calor
 ```
 
-O `base` do Vite está configurado como `/mapa-de-calor/` em `vite.config.ts`
-(ajuste caso o repositório tenha outro nome).
+### Scripts
 
-URL esperada: `https://<usuario>.github.io/mapa-de-calor/`
+```bash
+npm run fb:rules    # publica firestore.rules no banco mapa-de-calor
+npm run fb:import   # importa src/data/ocupacoes.json para o Firestore (7.233 docs)
+npm run fb:deploy   # build + deploy do dist/ no site mapa-de-calor
+```
 
-### Alternativa via GitHub Actions
+> Requer `gcloud auth login` (token de acesso) e a chave de serviço em
+> `GOOGLE_APPLICATION_CREDENTIALS` (para a importação). Nunca commite a chave nem o `.env`.
 
-Publique o conteúdo de `dist/` na branch `gh-pages` e ative em
-**Settings → Pages → Source: Deploy from a branch → gh-pages**.
+## Build e deploy (GitHub Pages — referência)
+
+O build de produção agora usa `base: '/'` (Firebase Hosting). O GitHub Pages **não é mais atualizado**;
 
 ## Estrutura
 

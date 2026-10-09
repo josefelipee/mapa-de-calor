@@ -35,13 +35,24 @@ interface ConfirmState {
   qtd: number;
 }
 
+function TelaCarregando({ texto }: { texto: string }) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-corporate-950 text-blue-100">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-300/40 border-t-blue-300" />
+      <p className="text-sm">{texto}</p>
+    </div>
+  );
+}
+
 function App() {
-  const { user, login, logout } = useAuth();
+  const { user, carregando: carregandoAuth, erro, login, logout } = useAuth();
+  const [entrando, setEntrando] = useState(false);
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIAIS);
   const [viewMode, setViewMode] = useState<ViewMode>('macro');
   const [exportando, setExportando] = useState(false);
   const {
     ocupacoes,
+    carregando: carregandoDados,
     dias,
     semanas,
     metricasSemanais,
@@ -50,7 +61,6 @@ function App() {
     atualizarRegistro,
     contarMoviveis,
     moverAlocacao,
-    restaurar,
   } = useOcupacoes(filtros);
   const [selectedData, setSelectedData] = useState<string | null>(null);
   const [semanaSelecionada, setSemanaSelecionada] = useState<number | null>(null);
@@ -58,8 +68,29 @@ function App() {
   const [alvo, setAlvo] = useState<string | null>(null);
   const [movimento, setMovimento] = useState<ConfirmState | null>(null);
 
+  if (carregandoAuth) {
+    return <TelaCarregando texto="Verificando sessão..." />;
+  }
+
   if (!user) {
-    return <Login onLogin={login} />;
+    return (
+      <Login
+        onLogin={async () => {
+          setEntrando(true);
+          try {
+            await login();
+          } finally {
+            setEntrando(false);
+          }
+        }}
+        carregando={entrando}
+        erro={erro}
+      />
+    );
+  }
+
+  if (carregandoDados) {
+    return <TelaCarregando texto="Carregando dados..." />;
   }
 
   const diaSelecionado = selectedData ? dias.get(selectedData) ?? null : null;
@@ -130,11 +161,6 @@ function App() {
         <Filters
           filtros={filtros}
           onChange={setFiltros}
-          onRestaurar={() => {
-            if (confirm('Deseja restaurar os dados originais? Todas as alterações locais serão perdidas.')) {
-              restaurar();
-            }
-          }}
           onExportar={handleExportar}
           exportando={exportando}
           projetosDisponiveis={projetosDisponiveis}

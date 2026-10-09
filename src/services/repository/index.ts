@@ -1,7 +1,7 @@
 import type { DataRepository } from './DataRepository';
-import { LocalDataRepository } from './LocalDataRepository';
+import { FirestoreDataRepository } from './FirestoreDataRepository';
 
 export type { DataRepository } from './DataRepository';
 
-/** Instância ativa da camada de dados. Trocar aqui ao migrar para Firestore. */
-export const dataRepository: DataRepository = new LocalDataRepository();
+/** Instância ativa da camada de dados (Cloud Firestore — banco nomeado). */
+export const dataRepository: DataRepository = new FirestoreDataRepository();

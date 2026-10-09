@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Mapa de Calor — Ocupação Semanal
+    // Leitura: qualquer usuário autenticado.
+    // Escrita: somente editores (allowlist de e-mails corporativos).
+    // O controle de editor/viewer na interface é o mesmo (src/config/mockUsers.ts).
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEditor() {
+      return isSignedIn() && request.auth.token.email in [
+        "jose.slima@g.globo",
+        "ffsampaio@g.globo",
+        "flemos@g.globo"
+      ];
+    }
+
+    match /ocupacoes/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isEditor();
+    }
+
+    // Nega qualquer caminho não declarado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

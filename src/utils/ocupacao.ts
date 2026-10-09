@@ -1,10 +1,23 @@
 import type { Ocupacao, StatusRegistro, StatusFiltro } from '../types';
 import { atendeSelecao, type Selecao } from './multiselect';
+import { getWeekNumber, getWeekday } from './weekNumber';
+import { getNomeMes } from './dateUtils';
 
 /** Garante statusRegistro válido (base antiga → ATIVO). */
 export function normalizarOcupacao(o: Ocupacao): Ocupacao {
   const statusRegistro: StatusRegistro = o.statusRegistro === 'INATIVO' ? 'INATIVO' : 'ATIVO';
   return o.statusRegistro === statusRegistro ? o : { ...o, statusRegistro };
+}
+
+/** Normaliza e recalcula os campos derivados de DATA. */
+export function prepararOcupacao(o: Ocupacao): Ocupacao {
+  const n = normalizarOcupacao(o);
+  return {
+    ...n,
+    semana: getWeekNumber(n.data),
+    dia: getWeekday(n.data),
+    mes: getNomeMes(n.data),
+  };
 }
 
 export interface ContextoMovimento {

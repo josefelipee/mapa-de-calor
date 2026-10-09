@@ -1,18 +1,12 @@
-import { useState } from 'react';
 import { APP_TITLE, APP_SUBTITLE } from '../config/mockUsers';
 
 interface LoginProps {
-  onLogin: (email: string) => void;
+  onLogin: () => void;
+  carregando?: boolean;
+  erro?: string | null;
 }
 
 const LOGO = `${import.meta.env.BASE_URL}logo.png`;
-
-const IconUser = () => (
-  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7">
-    <circle cx="12" cy="8" r="3.5" />
-    <path d="M5 19.5c1.2-3.2 3.9-5 7-5s5.8 1.8 7 5" strokeLinecap="round" />
-  </svg>
-);
 
 const IconArrow = () => (
   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -65,22 +59,12 @@ const HEAT_PATTERN = [
   0, 0, 1, 2, 3, 0, 1, 0, 1, 2, 0, 0, 2, 3, 1, 0, 0, 1, 2, 2, 0, 3, 0, 1, 1, 2, 0, 0, 1, 3, 2, 0, 0, 1, 1, 2,
 ];
 
-export function Login({ onLogin }: LoginProps) {
-  const [email, setEmail] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      onLogin(email.trim());
-    }
-  };
-
+export function Login({ onLogin, carregando = false, erro }: LoginProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-corporate-950 p-4 sm:p-6">
       <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl md:grid-cols-2">
         {/* Painel esquerdo (institucional) */}
-        <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-corporate-950 via-[#0b2545] to-blue-900 p-8 lg:p-10 md:flex">
-          {/* Grade decorativa de heatmap */}
+        <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-corporate-950 via-[#0b2545] to-blue-900 p-8 md:flex lg:p-10">
           <div
             aria-hidden
             className="pointer-events-none absolute -right-10 top-16 grid rotate-[-6deg] grid-cols-6 gap-1.5 opacity-[0.22]"
@@ -128,7 +112,7 @@ export function Login({ onLogin }: LoginProps) {
           </ul>
         </div>
 
-        {/* Painel direito (formulário) */}
+        {/* Painel direito (acesso) */}
         <div className="flex flex-col justify-center bg-white p-8 sm:p-10">
           <div className="mb-8 flex items-center gap-3 md:hidden">
             <img src={LOGO} alt={APP_TITLE} className="h-10 w-10 rounded-lg object-contain" />
@@ -141,37 +125,19 @@ export function Login({ onLogin }: LoginProps) {
           <h2 className="text-2xl font-bold text-gray-900">Acesso ao sistema</h2>
           <p className="mt-1 text-sm text-gray-500">Mapa de Calor — Ocupação Semanal</p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700">
-                Usuário
-              </label>
-              <div className="relative">
-                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
-                  <IconUser />
-                </span>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="Digite seu e-mail"
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  autoFocus
-                />
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={onLogin}
+            disabled={carregando}
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {carregando ? 'Entrando...' : 'Entrar com conta corporativa'}
+            {!carregando && <IconArrow />}
+          </button>
 
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
-            >
-              Entrar no sistema
-              <IconArrow />
-            </button>
-          </form>
+          {erro && <p className="mt-3 text-xs text-red-600">{erro}</p>}
 
-          <div className="mt-8 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
             <div className="flex items-center gap-2 text-blue-700">
               <IconUsers />
               <p className="text-sm font-semibold">Perfis de acesso</p>

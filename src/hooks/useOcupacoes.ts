@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Ocupacao, Filtros } from '../types';
 import { dataRepository } from '../services/repository';
 import { agruparPorDia, agruparPorSemana, calcularMetricasSemanais } from '../utils/calculations';
@@ -11,21 +11,24 @@ function atendeStatus(statusRegistro: string | undefined, filtro: Filtros['statu
 }
 
 export function useOcupacoes(filtros: Filtros) {
-  const [ocupacoes, setOcupacoes] = useState<Ocupacao[]>(() => dataRepository.getAll());
+  const [ocupacoes, setOcupacoes] = useState<Ocupacao[]>([]);
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    const unsub = dataRepository.subscribe(registros => {
+      setOcupacoes(registros);
+      setCarregando(false);
+    });
+    return unsub;
+  }, []);
 
   const atualizarRegistro = useCallback((registro: Ocupacao) => {
-    setOcupacoes(dataRepository.update(registro));
+    void dataRepository.update(registro);
   }, []);
 
   const restaurar = useCallback(() => {
-    dataRepository.reset();
-    setOcupacoes(dataRepository.getAll());
+    void dataRepository.reset();
   }, []);
-
-  const selecaoTipos: Selecao = {
-    selectionMode: filtros.tiposSelectionMode,
-    values: filtros.selectedTipos,
-  };
 
   // Lista de projetos respeita Data + Tipos + Status, mas NÃO o próprio filtro de projeto.
   const projetosDisponiveis = useMemo(() => {
@@ -48,13 +51,13 @@ export function useOcupacoes(filtros: Filtros) {
 
   const dadosFiltrados = useMemo(() => {
     const filtraProjeto = filtros.selectionMode === 'custom';
-    const selTiposLocal: Selecao = {
+    const selTipos: Selecao = {
       selectionMode: filtros.tiposSelectionMode,
       values: filtros.selectedTipos,
     };
     return ocupacoes.filter(o => {
       if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) return false;
-      if (!atendeSelecao(o.tipo, selTiposLocal)) return false;
+      if (!atendeSelecao(o.tipo, selTipos)) return false;
       if (!atendeStatus(o.statusRegistro, filtros.statusRegistro)) return false;
       if (filtraProjeto && !filtros.selectedProjects.includes(o.projeto)) return false;
       return true;
@@ -82,7 +85,7 @@ export function useOcupacoes(filtros: Filtros) {
       selecionarParaMover(ocupacoes, {
         dataOrigem,
         projeto,
-        tipos: selecaoTipos,
+        tipos: { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos },
         statusRegistro: filtros.statusRegistro,
       }).length,
     [ocupacoes, filtros.tiposSelectionMode, filtros.selectedTipos, filtros.statusRegistro]
@@ -93,11 +96,11 @@ export function useOcupacoes(filtros: Filtros) {
       const registros = selecionarParaMover(ocupacoes, {
         dataOrigem,
         projeto,
-        tipos: selecaoTipos,
+        tipos: { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos },
         statusRegistro: filtros.statusRegistro,
       });
       if (registros.length === 0) return 0;
-      setOcupacoes(dataRepository.updateMany(comNovaData(registros, dataDestino)));
+      void dataRepository.updateMany(comNovaData(registros, dataDestino));
       return registros.length;
     },
     [ocupacoes, filtros.tiposSelectionMode, filtros.selectedTipos, filtros.statusRegistro]
@@ -105,6 +108,7 @@ export function useOcupacoes(filtros: Filtros) {
 
   return {
     ocupacoes,
+    carregando,
     dias,
     semanas,
     metricasSemanais,

@@ -31,3 +31,9 @@ Thumbs.db
 # Local env
 .env
 .env.local
+
+# Referência Firebase (contém valores sensíveis) e chaves de serviço
+firebase-referencia/
+*.json.creds
+*-firebase-adminsdk-*.json
+mapa-de-calor.png
