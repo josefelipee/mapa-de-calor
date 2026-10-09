@@ -1,4 +1,5 @@
 import type { Ocupacao, StatusRegistro, StatusFiltro } from '../types';
+import { atendeSelecao, type Selecao } from './multiselect';
 
 /** Garante statusRegistro válido (base antiga → ATIVO). */
 export function normalizarOcupacao(o: Ocupacao): Ocupacao {
@@ -9,7 +10,7 @@ export function normalizarOcupacao(o: Ocupacao): Ocupacao {
 export interface ContextoMovimento {
   dataOrigem: string;
   projeto: string;
-  tipo: string; // 'TODOS' ou valor
+  tipos: Selecao; // seleção de tipos (all/custom)
   statusRegistro: StatusFiltro; // 'TODOS' | 'ATIVO' | 'INATIVO'
 }
 
@@ -21,7 +22,7 @@ export function selecionarParaMover(ocupacoes: Ocupacao[], ctx: ContextoMoviment
   return ocupacoes.filter(o => {
     if (o.data !== ctx.dataOrigem) return false;
     if (o.projeto !== ctx.projeto) return false;
-    if (ctx.tipo !== 'TODOS' && o.tipo !== ctx.tipo) return false;
+    if (!atendeSelecao(o.tipo, ctx.tipos)) return false;
     if (ctx.statusRegistro !== 'TODOS' && (o.statusRegistro ?? 'ATIVO') !== ctx.statusRegistro) return false;
     return true;
   });

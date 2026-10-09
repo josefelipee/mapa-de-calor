@@ -294,9 +294,6 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
               ))}
             </select>
           </Field>
-          <Field label="NM_RECURSO">
-            <input type="text" disabled={!isEditor} value={form.nmRecurso} onChange={e => set('nmRecurso', e.target.value)} className={inputClass} />
-          </Field>
           <Field label="STATUS">
             <input type="text" disabled={!isEditor} value={form.status} onChange={e => set('status', e.target.value)} className={inputClass} />
           </Field>
@@ -311,19 +308,10 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
               <option value="INATIVO">INATIVO</option>
             </select>
           </Field>
-          <Field label="TIPO2">
-            <input type="text" disabled={!isEditor} value={form.tipo2} onChange={e => set('tipo2', e.target.value)} className={inputClass} />
-          </Field>
           <Field label="SITE">
             <input type="text" disabled={!isEditor} value={form.site} onChange={e => set('site', e.target.value)} className={inputClass} />
           </Field>
-          <Field label="HORA2">
-            <input type="number" step="0.01" disabled={!isEditor} value={form.hora2 ?? ''} onChange={e => set('hora2', e.target.value === '' ? null : Number(e.target.value))} className={inputClass} />
-          </Field>
-          <Field label="HORA ORÇADA">
-            <input type="number" step="0.01" disabled={!isEditor} value={form.horaOrcada ?? ''} onChange={e => set('horaOrcada', e.target.value === '' ? null : Number(e.target.value))} className={inputClass} />
-          </Field>
-          <Field label="NOVA COLUNA ORÇADA">
+          <Field label="DURAÇÃO">
             <input type="number" step="0.01" disabled={!isEditor} value={form.novaColunaOrcada} onChange={e => set('novaColunaOrcada', Number(e.target.value))} className={inputClass} />
           </Field>
 

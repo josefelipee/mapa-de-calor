@@ -16,7 +16,8 @@ import type { Filtros, ViewMode } from './types';
 const FILTROS_INICIAIS: Filtros = {
   dataInicial: '2027-01-01',
   dataFinal: '2027-12-31',
-  tipo: 'TODOS',
+  tiposSelectionMode: 'all',
+  selectedTipos: [],
   selectionMode: 'all',
   selectedProjects: [],
   statusRegistro: 'ATIVO',

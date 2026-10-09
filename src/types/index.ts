@@ -34,7 +34,10 @@ export type SelectionMode = 'all' | 'custom';
 export interface Filtros {
   dataInicial: string;
   dataFinal: string;
-  tipo: string;
+  /** 'all' = todos os tipos; 'custom' = apenas selectedTipos. */
+  tiposSelectionMode: SelectionMode;
+  /** Tipos selecionados quando tiposSelectionMode = 'custom'. Vazio = nenhum. */
+  selectedTipos: string[];
   /** 'all' = todos os projetos do período/tipo; 'custom' = apenas selectedProjects. */
   selectionMode: SelectionMode;
   /** Projetos selecionados quando selectionMode = 'custom'. Vazio = nenhum. */

@@ -51,7 +51,7 @@ describe('selecionarParaMover', () => {
     const r = selecionarParaMover(base, {
       dataOrigem: '2027-03-11',
       projeto: 'FÓRMULA 1',
-      tipo: 'EVENTO ESPORTIVO',
+      tipos: { selectionMode: 'custom', values: ['EVENTO ESPORTIVO'] },
       statusRegistro: 'ATIVO',
     });
     expect(r.map(o => o.id)).toEqual(['1', '2']);
@@ -61,17 +61,17 @@ describe('selecionarParaMover', () => {
     const r = selecionarParaMover(base, {
       dataOrigem: '2027-03-11',
       projeto: 'FÓRMULA 1',
-      tipo: 'EVENTO ESPORTIVO',
+      tipos: { selectionMode: 'custom', values: ['EVENTO ESPORTIVO'] },
       statusRegistro: 'INATIVO',
     });
     expect(r.map(o => o.id)).toEqual(['3']);
   });
 
-  it('filtro TODOS (tipo e status) move ativos e inativos do projeto/data', () => {
+  it('filtro TODOS (tipos e status) move ativos e inativos do projeto/data', () => {
     const r = selecionarParaMover(base, {
       dataOrigem: '2027-03-11',
       projeto: 'FÓRMULA 1',
-      tipo: 'TODOS',
+      tipos: { selectionMode: 'all', values: [] },
       statusRegistro: 'TODOS',
     });
     expect(r.map(o => o.id)).toEqual(['1', '2', '3', '4']);

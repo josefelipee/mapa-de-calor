@@ -1,6 +1,7 @@
 import type { Filtros, ViewMode, StatusFiltro } from '../types';
-import { TIPOS_OPCOES } from '../config/heatmapConfig';
+import { TIPOS_VALORES } from '../config/heatmapConfig';
 import { ProjectFilter } from './ProjectFilter';
+import { TipoFilter } from './TipoFilter';
 
 interface FiltersProps {
   filtros: Filtros;
@@ -80,15 +81,14 @@ export function Filters({
 
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Tipo</label>
-          <select
-            value={filtros.tipo}
-            onChange={e => onChange({ ...filtros, tipo: e.target.value })}
-            className={inputClass}
-          >
-            {TIPOS_OPCOES.map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+          <TipoFilter
+            selectionMode={filtros.tiposSelectionMode}
+            selectedTipos={filtros.selectedTipos}
+            options={TIPOS_VALORES}
+            onChange={(tiposSelectionMode, selectedTipos) =>
+              onChange({ ...filtros, tiposSelectionMode, selectedTipos })
+            }
+          />
         </div>
 
         <div className="flex flex-col gap-1">

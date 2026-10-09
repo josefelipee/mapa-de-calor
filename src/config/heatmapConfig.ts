@@ -37,6 +37,9 @@ export const TIPOS_OPCOES = [
   'ENTRETENIMENTO',
 ];
 
+/** Tipos sem o sentinela 'TODOS' (para o multiselect). */
+export const TIPOS_VALORES = TIPOS_OPCOES.filter(t => t !== 'TODOS');
+
 export const MESES_ABREV = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
 export const MESES_EXTENSO = [

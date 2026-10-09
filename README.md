@@ -28,7 +28,7 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 - Filtro **Status registro** (`ATIVO` / `INATIVO` / `TODOS`, padrão `ATIVO`) — inativação lógica (sem apagar registros)
 - **Contador de registros exibidos** (linhas) que reage a todos os filtros
 - **Drag & drop** para mover uma alocação de um dia para outro (altera **apenas `DATA`**): habilitado só para **editor** com **exatamente 1 projeto** selecionado, com diálogo de confirmação
-- Filtros de **data inicial**, **data final** e **tipo**
+- Filtros de **data inicial**, **data final** e **Tipo** (multiselect pesquisável, com **Selecionar todos** / **Desmarcar todos** — permite excluir um único tipo, ex.: tudo menos `SEM CONTROLE`)
 - Alternância **Visão Macro / Detalhada**
   - **Macro:** célula compacta com o percentual
   - **Detalhada:** célula expandida com **Top 6 projetos + "Outros N"** (clique abre o Drawer/Resumo)
@@ -141,7 +141,7 @@ Testes automatizados com **Vitest** (round-trip da exportação):
 npm run test
 ```
 
-Cobrem: 16 colunas na ordem correta, 7.233 registros, tipos (data/data-hora/número),
+Cobrem: 17 colunas na ordem correta, 7.233 registros, tipos (data/data-hora/número),
 preservação de `ID`, edição de `Nova Coluna Orçada`, recálculo de `Semana/Dia/Mês` ao mudar `DATA`,
 existência da Excel Table `Tabela1` e validação do caso `31/07/2027` (total `144,333…`).
 
