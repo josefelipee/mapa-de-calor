@@ -1,5 +1,7 @@
 export const EDITORS = [
   'jose.slima@g.globo',
+  'ffsampaio@g.globo',
+  'flemos@g.globo',
   'editor1@empresa.com',
   'editor2@empresa.com',
   'editor3@empresa.com',
