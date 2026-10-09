@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { DiaCalculated, User, Ocupacao, ViewMode } from '../types';
+import type { DiaCalculated, User, Ocupacao, ViewMode, StatusRegistro } from '../types';
 import { formatDataExtenso, getNomeMes } from '../utils/dateUtils';
 import { formatPercent, TIPOS_OPCOES } from '../config/heatmapConfig';
 import { getWeekNumber, getWeekday } from '../utils/weekNumber';
@@ -218,8 +218,13 @@ function ListaRegistros({
               <p className="truncate text-sm font-medium text-gray-800" title={r.projeto}>
                 {r.projeto || '(sem projeto)'}
               </p>
-              <p className="text-[11px] text-gray-500">
-                {r.tipo} · {formatNumero(r.novaColunaOrcada)}
+              <p className="flex items-center gap-2 text-[11px] text-gray-500">
+                <span>{r.tipo} · {formatNumero(r.novaColunaOrcada)}</span>
+                {r.statusRegistro === 'INATIVO' && (
+                  <span className="rounded bg-gray-200 px-1 py-0.5 text-[9px] font-semibold uppercase text-gray-600">
+                    Inativo
+                  </span>
+                )}
               </p>
             </div>
             <button
@@ -294,6 +299,17 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
           </Field>
           <Field label="STATUS">
             <input type="text" disabled={!isEditor} value={form.status} onChange={e => set('status', e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="STATUS DO REGISTRO">
+            <select
+              disabled={!isEditor}
+              value={form.statusRegistro}
+              onChange={e => set('statusRegistro', e.target.value as StatusRegistro)}
+              className={inputClass}
+            >
+              <option value="ATIVO">ATIVO</option>
+              <option value="INATIVO">INATIVO</option>
+            </select>
           </Field>
           <Field label="TIPO2">
             <input type="text" disabled={!isEditor} value={form.tipo2} onChange={e => set('tipo2', e.target.value)} className={inputClass} />

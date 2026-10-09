@@ -29,3 +29,18 @@ export function getMes(dataStr: string): number {
 export function getNomeMes(dataStr: string): string {
   return format(parseISO(dataStr), 'MMM', { locale: ptBR }).toLowerCase();
 }
+
+/** Date (UTC) -> "YYYY-MM-DD". */
+export function formatISO(date: Date): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** Soma n dias a uma data ISO "YYYY-MM-DD". */
+export function addDias(dataISO: string, n: number): string {
+  const d = parseData(dataISO);
+  d.setUTCDate(d.getUTCDate() + n);
+  return formatISO(d);
+}

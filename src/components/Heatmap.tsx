@@ -1,13 +1,16 @@
 import { useEffect } from 'react';
 import type { SemanaCalculated, DiaCalculated, ViewMode } from '../types';
-import { HeatmapCell } from './HeatmapCell';
+import { HeatmapCell, type DragCellHandlers } from './HeatmapCell';
 import { MESES_ABREV, MESES_EXTENSO } from '../config/heatmapConfig';
+import { getWeekStart } from '../utils/weekNumber';
+import { parseData, formatISO, addDias } from '../utils/dateUtils';
 
 interface HeatmapProps {
   semanas: SemanaCalculated[];
   onCellClick: (dia: DiaCalculated) => void;
   viewMode: ViewMode;
   semanaSelecionada: number | null;
+  drag?: DragCellHandlers;
 }
 
 const DIAS_LABEL = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
@@ -22,6 +25,14 @@ interface GrupoMes {
 
 function primeiroDia(semana: SemanaCalculated): DiaCalculated | undefined {
   return Array.from(semana.dias.values()).sort((a, b) => a.diaSemana - b.diaSemana)[0];
+}
+
+/** Data (YYYY-MM-DD) de uma célula da semana, mesmo quando o dia não tem registro. */
+function dataDaCelula(semana: SemanaCalculated, diaSemana: number): string | undefined {
+  const primeiro = primeiroDia(semana);
+  if (!primeiro) return undefined;
+  const segunda = getWeekStart(parseData(primeiro.data));
+  return addDias(formatISO(segunda), diaSemana - 1);
 }
 
 function agruparPorMes(semanas: SemanaCalculated[]): GrupoMes[] {
@@ -40,7 +51,7 @@ function agruparPorMes(semanas: SemanaCalculated[]): GrupoMes[] {
   return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
 }
 
-export function Heatmap({ semanas, onCellClick, viewMode, semanaSelecionada }: HeatmapProps) {
+export function Heatmap({ semanas, onCellClick, viewMode, semanaSelecionada, drag }: HeatmapProps) {
   useEffect(() => {
     if (semanaSelecionada == null) return;
     const el = document.getElementById(`semana-${semanaSelecionada}`);
@@ -67,12 +78,14 @@ export function Heatmap({ semanas, onCellClick, viewMode, semanaSelecionada }: H
         detalhada={detalhada}
         semanaSelecionada={semanaSelecionada}
         onCellClick={onCellClick}
+        drag={drag}
       />
       <BlocoSemestre
         meses={semestre2}
         detalhada={detalhada}
         semanaSelecionada={semanaSelecionada}
         onCellClick={onCellClick}
+        drag={drag}
       />
     </div>
   );
@@ -83,11 +96,13 @@ function BlocoSemestre({
   detalhada,
   semanaSelecionada,
   onCellClick,
+  drag,
 }: {
   meses: GrupoMes[];
   detalhada: boolean;
   semanaSelecionada: number | null;
   onCellClick: (dia: DiaCalculated) => void;
+  drag?: DragCellHandlers;
 }) {
   const ano = meses[0]?.ano;
   const inicioIdx = meses[0] ? meses[0].mes - 1 : 0;
@@ -157,8 +172,10 @@ function BlocoSemestre({
                         <td key={diaSemana} className="border-b border-gray-50 px-[2px] py-0.5 align-top">
                           <HeatmapCell
                             dia={semana.dias.get(diaSemana)}
+                            dataCelula={dataDaCelula(semana, diaSemana)}
                             onClick={onCellClick}
                             detalhada={detalhada}
+                            drag={drag}
                           />
                         </td>
                       ))}

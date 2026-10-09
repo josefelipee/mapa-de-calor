@@ -1,3 +1,6 @@
+export type StatusRegistro = 'ATIVO' | 'INATIVO';
+export type StatusFiltro = StatusRegistro | 'TODOS';
+
 export interface Ocupacao {
   id: string; // identificador interno (imutável)
   dtHrInicioRecurso: string; // ISO local YYYY-MM-DDTHH:mm
@@ -16,6 +19,7 @@ export interface Ocupacao {
   hora2: number | null;
   horaOrcada: number | null;
   novaColunaOrcada: number; // valor usado nos cálculos de ocupação
+  statusRegistro: StatusRegistro; // ATIVO | INATIVO (exclusão lógica)
 }
 
 export type UserRole = 'editor' | 'viewer';
@@ -35,6 +39,8 @@ export interface Filtros {
   selectionMode: SelectionMode;
   /** Projetos selecionados quando selectionMode = 'custom'. Vazio = nenhum. */
   selectedProjects: string[];
+  /** Filtro por status do registro. */
+  statusRegistro: StatusFiltro;
 }
 
 export interface SemanaMetricas {

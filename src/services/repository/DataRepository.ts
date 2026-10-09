@@ -11,6 +11,8 @@ export interface DataRepository {
   getById(id: string): Ocupacao | undefined;
   /** Atualiza um registro e retorna a base completa atualizada. */
   update(registro: Ocupacao): Ocupacao[];
+  /** Atualiza vários registros em lote e retorna a base completa atualizada. */
+  updateMany(registros: Ocupacao[]): Ocupacao[];
   /** Restaura a base original. */
   reset(): void;
   /** Base completa para exportação (mesma de getAll, nome semântico). */

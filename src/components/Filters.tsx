@@ -1,4 +1,4 @@
-import type { Filtros, ViewMode } from '../types';
+import type { Filtros, ViewMode, StatusFiltro } from '../types';
 import { TIPOS_OPCOES } from '../config/heatmapConfig';
 import { ProjectFilter } from './ProjectFilter';
 
@@ -9,9 +9,12 @@ interface FiltersProps {
   onExportar: () => void;
   exportando: boolean;
   projetosDisponiveis: string[];
+  totalRegistros: number;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
 }
+
+const STATUS_OPCOES: StatusFiltro[] = ['ATIVO', 'INATIVO', 'TODOS'];
 
 const inputClass =
   'rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
@@ -23,14 +26,23 @@ export function Filters({
   onExportar,
   exportando,
   projetosDisponiveis,
+  totalRegistros,
   viewMode,
   onViewModeChange,
 }: FiltersProps) {
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
-      <div className="shrink-0">
-        <h2 className="text-base font-semibold text-gray-900">Mapa de Calor de Ocupação</h2>
-        <p className="text-xs text-gray-500">Visualize a ocupação por semana e dia da semana.</p>
+      <div className="flex items-center gap-4">
+        <div className="shrink-0">
+          <h2 className="text-base font-semibold text-gray-900">Mapa de Calor de Ocupação</h2>
+          <p className="text-xs text-gray-500">Visualize a ocupação por semana e dia da semana.</p>
+        </div>
+        <div className="shrink-0 border-l border-gray-200 pl-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Registros exibidos</p>
+          <p className="text-xl font-bold tabular-nums leading-tight text-corporate-900">
+            {totalRegistros.toLocaleString('pt-BR')}
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -75,6 +87,19 @@ export function Filters({
           >
             {TIPOS_OPCOES.map(t => (
               <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Status registro</label>
+          <select
+            value={filtros.statusRegistro}
+            onChange={e => onChange({ ...filtros, statusRegistro: e.target.value as StatusFiltro })}
+            className={inputClass}
+          >
+            {STATUS_OPCOES.map(s => (
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
         </div>

@@ -25,6 +25,9 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
   - **Pico:** maior percentual diário, com a data de ocorrência (tooltip mostra os três indicadores)
 - Clique numa semana do gráfico **destaca** a semana no heatmap (sem filtrar), com scroll automático; a seleção persiste ao trocar de modo
 - Filtro de **Projeto/Conteúdo** **multiselect pesquisável**: ações fixas **Selecionar todos** / **Desmarcar todos**, busca que não altera a seleção. Estados explícitos: **Todos** (`selectionMode: all`), **Personalizado** (`custom` + lista) e **Nenhum** (`custom` + lista vazia).
+- Filtro **Status registro** (`ATIVO` / `INATIVO` / `TODOS`, padrão `ATIVO`) — inativação lógica (sem apagar registros)
+- **Contador de registros exibidos** (linhas) que reage a todos os filtros
+- **Drag & drop** para mover uma alocação de um dia para outro (altera **apenas `DATA`**): habilitado só para **editor** com **exatamente 1 projeto** selecionado, com diálogo de confirmação
 - Filtros de **data inicial**, **data final** e **tipo**
 - Alternância **Visão Macro / Detalhada**
   - **Macro:** célula compacta com o percentual
@@ -41,7 +44,7 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 
 - Biblioteca: **ExcelJS** (import dinâmico — não afeta o bundle inicial).
 - Sempre exporta a **base completa efetiva** (`dataRepository.exportAll()`), com todas as edições persistidas; **não** respeita filtros visuais.
-- Aba `Base` com as 16 colunas na ordem original da `Tabela1` + Excel Table `Tabela1`, autofilter e 1ª linha congelada.
+- Aba `Base` com as **17 colunas** (as 16 originais da `Tabela1` + `STATUS_REGISTRO`) + Excel Table `Tabela1`, autofilter e 1ª linha congelada.
 - `Semana`/`Dia`/`Mês` são **recalculados a partir de `DATA`** no momento do export.
 - Datas gravadas como data/hora real do Excel (`dd/mm/yyyy` e `dd/mm/yyyy hh:mm`); campos numéricos permanecem numéricos.
 - Nome derivado dos anos da base: `Controles_ION_<anos>_atualizado_YYYYMMDD_HHmm.xlsx`
@@ -111,7 +114,8 @@ Todas as faixas ficam centralizadas em
 - Cada registro preserva a **linha completa** da Tabela1:
   `dtHrInicioRecurso`, `dtHrFimRecurso`, `semana`, `dia`, `mes`, `projeto`,
   `tipo`, `idPlanilha`, `nmRecurso`, `status`, `tipo2`, `site`, `data`,
-  `hora2`, `horaOrcada`, `novaColunaOrcada`
+  `hora2`, `horaOrcada`, `novaColunaOrcada`, `statusRegistro`
+- `statusRegistro` é normalizado em runtime (`?? 'ATIVO'`) para compatibilidade com bases antigas
 - `semana`, `dia` e `mes` são **recalculados a partir de `data`** (nunca editados manualmente)
 - Script de conversão: [`scripts/convert.cjs`](scripts/convert.cjs)
 - Script de validação: [`scripts/validate.cjs`](scripts/validate.cjs)

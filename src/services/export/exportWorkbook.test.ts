@@ -48,18 +48,22 @@ describe('Exportação Excel — base e estrutura', () => {
 });
 
 describe('Exportação Excel — round-trip', () => {
-  it('aba Base com 16 colunas, na ordem correta, e sem perdas/duplicatas', async () => {
+  it('aba Base com 17 colunas, na ordem correta, e sem perdas/duplicatas', async () => {
     const { ws } = await exportarEReler(base);
 
-    // 16 colunas
-    expect(ws.columnCount).toBe(16);
+    // 17 colunas (16 originais + STATUS_REGISTRO)
+    expect(ws.columnCount).toBe(17);
 
     // ordem dos cabeçalhos
     const headers: string[] = [];
-    for (let c = 1; c <= 16; c++) {
+    for (let c = 1; c <= 17; c++) {
       headers.push(String(ws.getRow(1).getCell(c).value));
     }
     expect(headers).toEqual(COLUNAS.map(c => c.header));
+    expect(headers[16]).toBe('STATUS_REGISTRO');
+
+    // STATUS_REGISTRO presente e ATIVO quando ausente na base
+    expect(String(ws.getCell(2, 17).value)).toBe('ATIVO');
 
     // linhas = 7233 dados + 1 cabeçalho
     expect(ws.rowCount).toBe(base.length + 1);

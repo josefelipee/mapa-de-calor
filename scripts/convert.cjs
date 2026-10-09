@@ -147,6 +147,7 @@ for (let i = 1; i < allRows.length; i++) {
     hora2: typeof row[iHora2] === 'number' ? row[iHora2] : null,
     horaOrcada: typeof row[iHoraOrcada] === 'number' ? row[iHoraOrcada] : null,
     novaColunaOrcada: valor,
+    statusRegistro: 'ATIVO',
   });
 }
 

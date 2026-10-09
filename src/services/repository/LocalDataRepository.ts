@@ -3,6 +3,7 @@ import type { DataRepository } from './DataRepository';
 import ocupacoesOriginais from '../../data/ocupacoes.json';
 import { getWeekNumber, getWeekday } from '../../utils/weekNumber';
 import { getNomeMes } from '../../utils/dateUtils';
+import { normalizarOcupacao } from '../../utils/ocupacao';
 
 const STORAGE_KEY = 'mapa-de-calor-ocupacoes';
 
@@ -13,6 +14,10 @@ function recalcularDerivados(registro: Ocupacao): Ocupacao {
     dia: getWeekday(registro.data),
     mes: getNomeMes(registro.data),
   };
+}
+
+function preparar(registro: Ocupacao): Ocupacao {
+  return recalcularDerivados(normalizarOcupacao(registro));
 }
 
 function ehRegistroValido(o: unknown): o is Ocupacao {
@@ -34,7 +39,7 @@ export class LocalDataRepository implements DataRepository {
       try {
         const parsed: unknown = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(ehRegistroValido)) {
-          return parsed as Ocupacao[];
+          return (parsed as Ocupacao[]).map(normalizarOcupacao);
         }
         localStorage.removeItem(STORAGE_KEY);
       } catch {
@@ -42,7 +47,7 @@ export class LocalDataRepository implements DataRepository {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-    return ocupacoesOriginais as Ocupacao[];
+    return (ocupacoesOriginais as Ocupacao[]).map(normalizarOcupacao);
   }
 
   private salvar(ocupacoes: Ocupacao[]): void {
@@ -59,8 +64,15 @@ export class LocalDataRepository implements DataRepository {
 
   update(registro: Ocupacao): Ocupacao[] {
     const atualizadas = this.carregar().map(o =>
-      o.id === registro.id ? recalcularDerivados(registro) : o
+      o.id === registro.id ? preparar(registro) : o
     );
+    this.salvar(atualizadas);
+    return atualizadas;
+  }
+
+  updateMany(registros: Ocupacao[]): Ocupacao[] {
+    const porId = new Map(registros.map(r => [r.id, preparar(r)]));
+    const atualizadas = this.carregar().map(o => porId.get(o.id) ?? o);
     this.salvar(atualizadas);
     return atualizadas;
   }
