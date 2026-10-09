@@ -1,10 +1,14 @@
 # Mapa de Calor de Ocupação
 
-MVP web para visualização de ocupação por **semana do ano** e **dia da semana**, com edição local
-(via `localStorage`) e perfis mock de **editor** e **visualizador**.
+Aplicação web para visualização de ocupação por **semana do ano** e **dia da semana**, com
+autenticação corporativa (**OIDC**) e perfis **editor** e **visualizador**.
 
-> Fase atual: validação funcional (sem Firebase/OIDC). A persistência e autenticação
-> corporativas entram em uma etapa posterior.
+> **AMBIENTE OFICIAL:** https://mapa-de-calor.web.app
+>
+> - **GitHub** → código-fonte, versionamento e backups (não é ambiente de execução).
+> - **Firebase Hosting** → publicação oficial.
+> - **Cloud Firestore** → banco operacional.
+> - **OIDC corporativo** → autenticação.
 
 ## Stack
 
@@ -14,11 +18,10 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 - ExcelJS (exportação XLSX; import dinâmico)
 - **Firebase** (Hosting, Authentication OIDC, Cloud Firestore)
 - Vitest (testes)
-- GitHub Pages (referência — não é mais o alvo de produção)
 
 ## Funcionalidades
 
-- Login mock por e-mail (sem senha)
+- Login corporativo via **OIDC** (Firebase Authentication)
 - Heatmap em **dois blocos semestrais** lado a lado (jan–jun / jul–dez)
 - **Gráfico lateral** por semana com **escala de cor relativa** (mín→verde, média→laranja, máx→vermelho) e **seletor Total / Média / Pico**
   - **Total:** soma dos percentuais diários da semana
@@ -38,13 +41,12 @@ MVP web para visualização de ocupação por **semana do ano** e **dia da seman
 - Aba Registros: registros individuais + edição da linha completa
 - Heatmap/tooltip/totais recalculam imediatamente
 - Legenda de cores visível
-- Botão **Restaurar dados** (limpa `localStorage`)
-- Botão **Exportar Excel** — gera a **base completa** (aba `Base` / Excel Table `Tabela1`, 16 colunas), ignorando filtros
+- Botão **Exportar Excel** — gera a **base completa** (aba `Base` / Excel Table `Tabela1`, ignorando filtros)
 
 ## Exportação Excel
 
 - Biblioteca: **ExcelJS** (import dinâmico — não afeta o bundle inicial).
-- Sempre exporta a **base completa efetiva** (`dataRepository.exportAll()`), com todas as edições persistidas; **não** respeita filtros visuais.
+- Sempre exporta a **base completa** (todo o conjunto de registros), com todas as edições persistidas; **não** respeita filtros visuais.
 - Aba `Base` com as **17 colunas** (as 16 originais da `Tabela1` + `STATUS_REGISTRO`) + Excel Table `Tabela1`, autofilter e 1ª linha congelada.
 - `Semana`/`Dia`/`Mês` são **recalculados a partir de `DATA`** no momento do export.
 - Datas gravadas como data/hora real do Excel (`dd/mm/yyyy` e `dd/mm/yyyy hh:mm`); campos numéricos permanecem numéricos.
@@ -79,23 +81,23 @@ npm install
 npm run dev
 ```
 
-Acesse a URL indicada no terminal (padrão: http://localhost:5173/mapa-de-calor/).
+Acesse a URL indicada no terminal (padrão: http://localhost:5173/).
 
-## Configurar editores (mock)
+## Editores (perfis)
 
-Edite a lista em [`src/config/mockUsers.ts`](src/config/mockUsers.ts):
+A lista de editores fica em [`src/config/mockUsers.ts`](src/config/mockUsers.ts) e é usada pela UI.
+As **Security Rules** do Firestore (`firestore.rules`) usam a mesma lista de e-mails para autorizar escrita.
 
 ```ts
 export const EDITORS = [
-  "editor1@empresa.com",
-  "editor2@empresa.com",
-  "editor3@empresa.com",
-  "editor4@empresa.com",
+  "jose.slima@g.globo",
+  "ffsampaio@g.globo",
+  "flemos@g.globo",
 ];
 ```
 
-- E-mail na lista → `editor`
-- Qualquer outro e-mail → `viewer`
+- E-mail na lista → `editor` (pode editar)
+- Qualquer outro usuario autenticado → `viewer` (somente leitura)
 
 ## Ajustar cores do heatmap
 
@@ -127,12 +129,12 @@ node scripts/validate.cjs
 
 ### Camada de dados (repository)
 
-Os componentes/hooks não acessam JSON ou `localStorage` diretamente. Tudo passa por
+Os componentes/hooks não acessam o banco diretamente. Tudo passa por
 [`src/services/repository`](src/services/repository):
 
-- `DataRepository` (interface): `getAll`, `getById`, `update`, `reset`, `exportAll`
-- `LocalDataRepository` (atual): JSON + `localStorage`
-- Futuro: `FirestoreDataRepository` — sem alterar Heatmap, Drawer, filtros ou cálculos.
+- `DataRepository` (interface): `subscribe` (tempo real), `update`, `updateMany`, `reset`
+- `FirestoreDataRepository` (**atual**): Cloud Firestore — banco `mapa-de-calor`, coleção `ocupacoes`
+- `LocalDataRepository`: implementação local (JSON + `localStorage`), mantida como referência
 
 ## Testes
 
@@ -177,29 +179,32 @@ npm run fb:deploy   # build + deploy do dist/ no site mapa-de-calor
 > Requer `gcloud auth login` (token de acesso) e a chave de serviço em
 > `GOOGLE_APPLICATION_CREDENTIALS` (para a importação). Nunca commite a chave nem o `.env`.
 
-## Build e deploy (GitHub Pages — referência)
+## Publicação (Firebase Hosting — oficial)
 
-O build de produção agora usa `base: '/'` (Firebase Hosting). O GitHub Pages **não é mais atualizado**;
+Ambiente oficial: **https://mapa-de-calor.web.app**
+
+Fluxo: desenvolvimento → `npm run build` → `npm run test` → `npm run fb:deploy`.
+O build usa `base: '/'` (raiz do Firebase Hosting). O GitHub Pages **não** faz parte do deploy.
 
 ## Estrutura
 
 ```
 src/
 ├── components/   # Header, Filters, Heatmap, HeatmapCell, Tooltip, Drawer, Login, WeekBars, ...
-├── config/       # mockUsers.ts, heatmapConfig.ts
-├── data/         # ocupacoes.json
-├── hooks/        # useAuth.ts, useOcupacoes.ts
+├── config/       # mockUsers.ts (editores), heatmapConfig.ts
+├── data/         # ocupacoes.json (fonte para importação)
+├── hooks/        # useAuth.ts (OIDC), useOcupacoes.ts (Firestore em tempo real)
 ├── services/
-│   ├── repository/   # DataRepository, LocalDataRepository
-│   └── export/       # exportColumns, exportWorkbook (+ teste)
-├── utils/        # weekNumber.ts, calculations.ts, dateUtils.ts
+│   ├── firebase.ts        # initializeApp / auth / firestore (banco mapa-de-calor)
+│   ├── repository/        # DataRepository, FirestoreDataRepository, LocalDataRepository
+│   └── export/            # exportColumns, exportWorkbook (+ teste)
+├── utils/        # weekNumber.ts, calculations.ts, dateUtils.ts, ocupacao.ts, multiselect.ts
 ├── types/        # index.ts
 └── styles/       # globals.css
 ```
 
-## Próximos passos (fora deste MVP)
+## Próximos passos
 
-- Autenticação OIDC corporativa (Firebase Authentication)
-- Persistência em Cloud Firestore + Security Rules
-- Histórico de alterações
-- Importação de planilha
+- Histórico de alterações (auditoria)
+- Importação de planilha XLSX direto na aplicação
+- Paginação/carga sob demanda no Firestore (se o volume crescer)
