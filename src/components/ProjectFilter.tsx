@@ -91,9 +91,9 @@ export function ProjectFilter({
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-1 w-80 rounded-md border border-gray-200 bg-white shadow-xl">
+        <div className="absolute z-30 mt-1 flex max-h-[min(520px,calc(100vh-40px))] w-80 flex-col rounded-md border border-gray-200 bg-white shadow-xl">
           {/* Ações fixas — sempre visíveis, fora da área de scroll */}
-          <div className="border-b border-gray-100 py-1">
+          <div className="shrink-0 border-b border-gray-100 py-1">
             <button
               type="button"
               onClick={doSelecionarTodos}
@@ -113,7 +113,7 @@ export function ProjectFilter({
           </div>
 
           {/* Busca (não altera seleção) */}
-          <div className="flex items-center gap-2 border-b border-gray-100 px-2.5 py-2">
+          <div className="flex shrink-0 items-center gap-2 border-b border-gray-100 px-2.5 py-2">
             <svg className="h-3.5 w-3.5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
@@ -130,8 +130,8 @@ export function ProjectFilter({
             />
           </div>
 
-          {/* Lista */}
-          <ul className="max-h-64 overflow-y-auto py-1 scrollbar-thin">
+          {/* Lista — única área com scroll */}
+          <ul className="min-h-0 flex-1 overflow-y-auto py-1 scrollbar-thin">
             {filtrados.length === 0 && (
               <li className="px-3 py-2 text-xs text-gray-400">Nenhum projeto encontrado.</li>
             )}
