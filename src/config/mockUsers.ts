@@ -2,6 +2,7 @@ export const EDITORS = [
   'jose.slima@g.globo',
   'ffsampaio@g.globo',
   'flemos@g.globo',
+  'joao.bandeira@g.globo',
 ];
 
 export const APP_TITLE = 'MAPA DE CALOR';
