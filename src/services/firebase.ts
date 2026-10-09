@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 const env = import.meta.env;
 
@@ -15,4 +16,6 @@ export const firebaseApp = initializeApp({
 
 export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp, env.VITE_FIRESTORE_DATABASE_ID);
+export const functions = getFunctions(firebaseApp, 'southamerica-east1');
 export const OIDC_PROVIDER_ID = env.VITE_OIDC_PROVIDER_ID;
+

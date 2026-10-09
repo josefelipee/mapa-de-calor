@@ -1,16 +1,24 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import type { Ocupacao, Filtros } from '../types';
+import type { Ocupacao, Filtros, User, Ator } from '../types';
 import { dataRepository } from '../services/repository';
 import { agruparPorDia, agruparPorSemana, calcularMetricasSemanais } from '../utils/calculations';
 import { selecionarParaMover, comNovaData } from '../utils/ocupacao';
 import { atendeSelecao, type Selecao } from '../utils/multiselect';
+
+function novoOperationId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `op-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
 
 function atendeStatus(statusRegistro: string | undefined, filtro: Filtros['statusRegistro']): boolean {
   if (filtro === 'TODOS') return true;
   return (statusRegistro ?? 'ATIVO') === filtro;
 }
 
-export function useOcupacoes(filtros: Filtros) {
+export function useOcupacoes(filtros: Filtros, user: User | null) {
   const [ocupacoes, setOcupacoes] = useState<Ocupacao[]>([]);
   const [carregando, setCarregando] = useState(true);
 
@@ -22,9 +30,14 @@ export function useOcupacoes(filtros: Filtros) {
     return unsub;
   }, []);
 
-  const atualizarRegistro = useCallback((registro: Ocupacao) => {
-    void dataRepository.update(registro);
-  }, []);
+  const atualizarRegistro = useCallback(
+    (registro: Ocupacao) => {
+      if (!user) return;
+      const ator: Ator = { uid: user.uid, email: user.email, operationId: novoOperationId() };
+      void dataRepository.update(registro, ator);
+    },
+    [user]
+  );
 
   const restaurar = useCallback(() => {
     void dataRepository.reset();
@@ -93,6 +106,7 @@ export function useOcupacoes(filtros: Filtros) {
 
   const moverAlocacao = useCallback(
     (dataOrigem: string, dataDestino: string, projeto: string): number => {
+      if (!user) return 0;
       const registros = selecionarParaMover(ocupacoes, {
         dataOrigem,
         projeto,
@@ -100,10 +114,11 @@ export function useOcupacoes(filtros: Filtros) {
         statusRegistro: filtros.statusRegistro,
       });
       if (registros.length === 0) return 0;
-      void dataRepository.updateMany(comNovaData(registros, dataDestino));
+      const ator: Ator = { uid: user.uid, email: user.email, operationId: novoOperationId() };
+      void dataRepository.updateMany(comNovaData(registros, dataDestino), ator);
       return registros.length;
     },
-    [ocupacoes, filtros.tiposSelectionMode, filtros.selectedTipos, filtros.statusRegistro]
+    [ocupacoes, user, filtros.tiposSelectionMode, filtros.selectedTipos, filtros.statusRegistro]
   );
 
   return {

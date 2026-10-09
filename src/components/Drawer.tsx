@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import type { DiaCalculated, User, Ocupacao, ViewMode, StatusRegistro } from '../types';
+import type { DiaCalculated, User, Ocupacao, ViewMode, StatusRegistro, HistoricoAlteracao } from '../types';
 import { formatDataExtenso, getNomeMes } from '../utils/dateUtils';
 import { formatPercent, TIPOS_OPCOES } from '../config/heatmapConfig';
 import { getWeekNumber, getWeekday } from '../utils/weekNumber';
 import { agruparConteudosPorDia, calcularPercentual } from '../utils/calculations';
+import { listarHistoricoPorOcupacao, listarHistoricoPorOcupacoes } from '../services/historico';
+import { HistoricoLista } from './HistoricoLista';
 import { Legend } from './Legend';
 
 interface DrawerProps {
@@ -20,10 +22,10 @@ const formatNumero = (n: number) =>
   n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function Drawer({ dia, user, viewMode, onClose, onSave }: DrawerProps) {
-  const [tab, setTab] = useState<'resumo' | 'registros'>('resumo');
+  const [tab, setTab] = useState<'resumo' | 'registros' | 'historico'>('resumo');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Ocupacao | null>(null);
-  const isEditor = user.role === 'editor';
+  const isEditor = user.role === 'editor' || user.role === 'admin';
 
   useEffect(() => {
     setTab('resumo');
@@ -92,10 +94,22 @@ export function Drawer({ dia, user, viewMode, onClose, onSave }: DrawerProps) {
           >
             Registros ({dia.registros.length})
           </button>
+          <button
+            onClick={() => setTab('historico')}
+            className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+              tab === 'historico'
+                ? 'border-blue-600 text-blue-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Histórico
+          </button>
         </div>
 
         {tab === 'resumo' ? (
           <AbaResumo dia={dia} viewMode={viewMode} />
+        ) : tab === 'historico' ? (
+          <AbaHistoricoDia dia={dia} />
         ) : editingId && form ? (
           <FichaRegistro
             form={form}
@@ -194,6 +208,35 @@ function AbaResumo({ dia, viewMode }: { dia: DiaCalculated; viewMode: ViewMode }
   );
 }
 
+function AbaHistoricoDia({ dia }: { dia: DiaCalculated }) {
+  const [itens, setItens] = useState<HistoricoAlteracao[] | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+    listarHistoricoPorOcupacoes(dia.registros.map(r => r.id))
+      .then(h => {
+        if (ativo) setItens(h);
+      })
+      .catch(() => {
+        if (ativo) setItens([]);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [dia]);
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 py-4 scrollbar-thin">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Alterações do dia</h3>
+      {itens === null ? (
+        <p className="py-6 text-center text-xs text-gray-400">Carregando histórico…</p>
+      ) : (
+        <HistoricoLista itens={itens} />
+      )}
+    </div>
+  );
+}
+
 function ListaRegistros({
   dia,
   isEditor,
@@ -253,6 +296,22 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
   const set = <K extends keyof Ocupacao>(key: K, value: Ocupacao[K]) => {
     onChange({ ...form, [key]: value });
   };
+
+  const [historico, setHistorico] = useState<HistoricoAlteracao[] | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    setHistorico(null);
+    listarHistoricoPorOcupacao(form.id)
+      .then(h => {
+        if (ativo) setHistorico(h);
+      })
+      .catch(() => {
+        if (ativo) setHistorico([]);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [form.id]);
 
   const semanaPreview = form.data ? getWeekNumber(form.data) : '';
   const diaPreview = form.data ? DIAS_SEMANA_LABEL[getWeekday(form.data)] : '';
@@ -337,6 +396,17 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
                 <span>{mesPreview}</span>
               </div>
             </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
+              Histórico deste registro
+            </p>
+            {historico === null ? (
+              <p className="py-4 text-center text-xs text-gray-400">Carregando…</p>
+            ) : (
+              <HistoricoLista itens={historico} />
+            )}
           </div>
         </div>
       </div>

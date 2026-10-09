@@ -1,4 +1,4 @@
-import type { Ocupacao } from '../../types';
+import type { Ocupacao, Ator } from '../../types';
 import type { DataRepository } from './DataRepository';
 import ocupacoesOriginais from '../../data/ocupacoes.json';
 import { prepararOcupacao } from '../../utils/ocupacao';
@@ -54,14 +54,24 @@ export class LocalDataRepository implements DataRepository {
     };
   }
 
-  async update(registro: Ocupacao): Promise<void> {
-    const atualizadas = this.carregar().map(o => (o.id === registro.id ? prepararOcupacao(registro) : o));
+  private comAtor(registro: Ocupacao, ator: Ator): Ocupacao {
+    return {
+      ...prepararOcupacao(registro),
+      atualizadoPor: ator.email,
+      atualizadoPorUid: ator.uid,
+      atualizadoEm: new Date().toISOString(),
+      ultimaOperacaoId: ator.operationId,
+    };
+  }
+
+  async update(registro: Ocupacao, ator: Ator): Promise<void> {
+    const atualizadas = this.carregar().map(o => (o.id === registro.id ? this.comAtor(registro, ator) : o));
     this.salvar(atualizadas);
     this.emitir();
   }
 
-  async updateMany(registros: Ocupacao[]): Promise<void> {
-    const porId = new Map(registros.map(r => [r.id, prepararOcupacao(r)]));
+  async updateMany(registros: Ocupacao[], ator: Ator): Promise<void> {
+    const porId = new Map(registros.map(r => [r.id, this.comAtor(r, ator)]));
     const atualizadas = this.carregar().map(o => porId.get(o.id) ?? o);
     this.salvar(atualizadas);
     this.emitir();

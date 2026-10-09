@@ -20,13 +20,50 @@ export interface Ocupacao {
   horaOrcada: number | null;
   novaColunaOrcada: number; // valor usado nos cálculos de ocupação
   statusRegistro: StatusRegistro; // ATIVO | INATIVO (exclusão lógica)
+  // Metadados de operação/auditoria (não entram em cálculos nem exportação):
+  atualizadoPor?: string;
+  atualizadoPorUid?: string;
+  atualizadoEm?: unknown;
+  ultimaOperacaoId?: string;
 }
 
-export type UserRole = 'editor' | 'viewer';
+export type UserRole = 'admin' | 'editor' | 'viewer';
 
 export interface User {
+  uid: string;
   email: string;
   role: UserRole;
+}
+
+export interface CampoAlterado {
+  campo: string;
+  anterior: unknown;
+  novo: unknown;
+}
+
+export interface HistoricoAlteracao {
+  id: string;
+  ocupacaoId: string;
+  acao: string;
+  usuarioUid: string | null;
+  usuarioEmail: string | null;
+  alteradoEm: Date | null;
+  operationId: string | null;
+  camposAlterados: CampoAlterado[];
+}
+
+export interface UsuarioAcesso {
+  uid: string;
+  email: string;
+  nome: string;
+  role: UserRole;
+}
+
+/** Contexto de quem executa uma alteração (para auditoria/atribuição). */
+export interface Ator {
+  uid: string;
+  email: string;
+  operationId: string;
 }
 
 export type SelectionMode = 'all' | 'custom';

@@ -179,6 +179,34 @@ npm run fb:deploy   # build + deploy do dist/ no site mapa-de-calor
 > Requer `gcloud auth login` (token de acesso) e a chave de serviço em
 > `GOOGLE_APPLICATION_CREDENTIALS` (para a importação). Nunca commite a chave nem o `.env`.
 
+## Auditoria e gestão de acessos
+
+- **Roles:** `admin` > `editor` > `viewer`. Fonte de verdade para as **Security Rules**: `usuarios/{uid}.role` (verificado no servidor). Custom claims são espelho para leitura rápida no frontend.
+- **Admin bootstrap fixo** por UID nas rules (`jose.slima@g.globo`) para evitar lockout.
+- **Coleções:** `usuarios/{uid}`, `acessosPendentes/{email}`, `historicoAlteracoes` (operacional), `historicoAcessos` (permissões).
+- **Cloud Functions** (`functions/`, 2nd gen, `southamerica-east1`):
+  - `auditarOcupacao` → grava `historicoAlteracoes` (diff dos campos relevantes) a cada alteração em `ocupacoes`.
+  - `sincronizarClaims` → espelha `usuarios/{uid}.role` nas custom claims.
+  - `sincronizarMeuAcesso` (callable) → provisiona `usuarios/{uid}` no login e aplica `acessosPendentes`.
+  - `definirPapel` (callable, admin-only) → adiciona/remove editor e grava `historicoAcessos`.
+- **Atribuição nas escritas de `ocupacoes`:** `atualizadoPor`, `atualizadoPorUid`, `atualizadoEm`, `ultimaOperacaoId` (validados nas rules; não entram em cálculos nem na exportação).
+- **Frontend:** engrenagem no Header (só `admin`) → “Gerenciar acessos”; aba **Histórico** no Drawer (do dia e por registro).
+
+### Ordem de deploy (importante)
+
+```bash
+# 1) Backend (requer permissões de Functions/Cloud Build + iam.serviceAccountUser)
+firebase deploy --only functions
+# 2) Regras do banco nomeado mapa-de-calor
+npm run fb:rules
+# 3) Migrar usuários existentes para usuarios/{uid} (+ claims)
+node scripts/seed-usuarios.cjs
+# 4) Frontend
+npm run fb:deploy
+```
+
+> Deployar o **frontend** antes das Functions/regras/seed faz todos entrarem como `viewer`.
+
 ## Publicação (Firebase Hosting — oficial)
 
 Ambiente oficial: **https://mapa-de-calor.web.app**

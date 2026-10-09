@@ -2,11 +2,12 @@ import {
   collection,
   doc,
   onSnapshot,
+  serverTimestamp,
   writeBatch,
   type DocumentData,
   type Unsubscribe,
 } from 'firebase/firestore';
-import type { Ocupacao } from '../../types';
+import type { Ocupacao, Ator } from '../../types';
 import type { DataRepository } from './DataRepository';
 import { db } from '../firebase';
 import { prepararOcupacao } from '../../utils/ocupacao';
@@ -30,16 +31,22 @@ export class FirestoreDataRepository implements DataRepository {
     return unsub;
   }
 
-  async update(registro: Ocupacao): Promise<void> {
-    await this.updateMany([registro]);
+  async update(registro: Ocupacao, ator: Ator): Promise<void> {
+    await this.updateMany([registro], ator);
   }
 
-  async updateMany(registros: Ocupacao[]): Promise<void> {
+  async updateMany(registros: Ocupacao[], ator: Ator): Promise<void> {
     for (let i = 0; i < registros.length; i += TAMANHO_LOTE) {
       const batch = writeBatch(db);
       for (const registro of registros.slice(i, i + TAMANHO_LOTE)) {
         const { id, ...campos } = prepararOcupacao(registro);
-        batch.set(doc(db, COLECAO, id), campos);
+        batch.set(doc(db, COLECAO, id), {
+          ...campos,
+          atualizadoPor: ator.email,
+          atualizadoPorUid: ator.uid,
+          atualizadoEm: serverTimestamp(),
+          ultimaOperacaoId: ator.operationId,
+        });
       }
       await batch.commit();
     }

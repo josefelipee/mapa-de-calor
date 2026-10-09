@@ -3,25 +3,72 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Mapa de Calor — Ocupação Semanal
-    // Leitura: qualquer usuário autenticado.
-    // Escrita: somente editores (allowlist de e-mails corporativos).
-    // O controle de editor/viewer na interface é o mesmo (src/config/mockUsers.ts).
+    // Fonte de verdade de autorização: usuarios/{uid}.role (verificado no servidor).
+    // Custom claims são apenas espelho/leitura rápida no frontend.
+    //   viewer  -> leitura
+    //   editor  -> leitura + escrita em ocupacoes
+    //   admin   -> editor + gestão de acessos (via Cloud Functions)
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isEditor() {
-      return isSignedIn() && request.auth.token.email in [
-        "jose.slima@g.globo",
-        "ffsampaio@g.globo",
-        "flemos@g.globo"
-      ];
+    // Admin bootstrap fixo (imutável) para evitar lockout.
+    function bootstrapAdminUid() {
+      return '7eWBP7WfzJYgEcsZ0UZFD5e9RfZ2';
     }
 
+    function existeMeuUsuario() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function minhaRole() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == bootstrapAdminUid()
+        || (existeMeuUsuario() && minhaRole() == 'admin')
+      );
+    }
+
+    function isEditor() {
+      return isAdmin() || (
+        isSignedIn() && existeMeuUsuario() && minhaRole() == 'editor'
+      );
+    }
+
+    // Registros: leitura para autenticados; escrita para editor/admin,
+    // exigindo autoria válida (anti-spoof de auditoria).
     match /ocupacoes/{docId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isEditor();
+      allow create, update: if isEditor()
+        && request.resource.data.atualizadoPorUid == request.auth.uid
+        && request.resource.data.atualizadoPor == request.auth.token.email;
+      allow delete: if false;
+    }
+
+    // Auditoria: cliente apenas lê; escrita exclusiva do backend.
+    match /historicoAlteracoes/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /historicoAcessos/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Usuários/permissões: leitura do próprio doc ou admin; escrita só pelo backend.
+    match /usuarios/{uid} {
+      allow read: if isSignedIn() && (uid == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    // Pendências de acesso: exclusivo do backend.
+    match /acessosPendentes/{email} {
+      allow read, write: if false;
     }
 
     // Nega qualquer caminho não declarado.

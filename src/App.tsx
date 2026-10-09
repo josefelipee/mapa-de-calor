@@ -10,6 +10,7 @@ import { WeekBars } from './components/WeekBars';
 import { Legend } from './components/Legend';
 import { Drawer } from './components/Drawer';
 import { ConfirmMoveDialog } from './components/ConfirmMoveDialog';
+import { GerenciarAcessos } from './components/GerenciarAcessos';
 import { exportarExcel, nomeArquivoExcel } from './services/export';
 import type { Filtros, ViewMode } from './types';
 
@@ -61,12 +62,13 @@ function App() {
     atualizarRegistro,
     contarMoviveis,
     moverAlocacao,
-  } = useOcupacoes(filtros);
+  } = useOcupacoes(filtros, user);
   const [selectedData, setSelectedData] = useState<string | null>(null);
   const [semanaSelecionada, setSemanaSelecionada] = useState<number | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [alvo, setAlvo] = useState<string | null>(null);
   const [movimento, setMovimento] = useState<ConfirmState | null>(null);
+  const [mostrarAcessos, setMostrarAcessos] = useState(false);
 
   if (carregandoAuth) {
     return <TelaCarregando texto="Verificando sessão..." />;
@@ -96,7 +98,9 @@ function App() {
   const diaSelecionado = selectedData ? dias.get(selectedData) ?? null : null;
 
   const dragHabilitado =
-    user.role === 'editor' && filtros.selectionMode === 'custom' && filtros.selectedProjects.length === 1;
+    (user.role === 'editor' || user.role === 'admin') &&
+    filtros.selectionMode === 'custom' &&
+    filtros.selectedProjects.length === 1;
   const projetoSelecionado = dragHabilitado ? filtros.selectedProjects[0] : null;
 
   const handleExportar = async () => {
@@ -155,7 +159,11 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <Header user={user} onLogout={logout} />
+      <Header
+        user={user}
+        onLogout={logout}
+        onGerenciarAcessos={user.role === 'admin' ? () => setMostrarAcessos(true) : undefined}
+      />
 
       <main className="flex-1 px-4 py-3">
         <Filters
@@ -214,6 +222,8 @@ function App() {
           }}
         />
       )}
+
+      {mostrarAcessos && <GerenciarAcessos onClose={() => setMostrarAcessos(false)} />}
     </div>
   );
 }
