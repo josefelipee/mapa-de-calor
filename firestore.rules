@@ -11,12 +11,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function bootstrapAdminUid() {
-      return '7eWBP7WfzJYgEcsZ0UZFD5e9RfZ2'; // jose.slima@g.globo
-    }
-
     function isAdmin() {
-      return signedIn() && request.auth.uid == bootstrapAdminUid();
+      return signedIn() && request.auth.uid in [
+        '7eWBP7WfzJYgEcsZ0UZFD5e9RfZ2', // jose.slima@g.globo
+        '1ElhCA6biEfBX8sfH0cRggfTsyh1'  // ana.massocato@g.globo
+      ];
     }
 
     function existeMeuUsuario() {
