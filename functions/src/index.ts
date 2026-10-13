@@ -5,10 +5,10 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 
 setGlobalOptions({ region: 'southamerica-east1', maxInstances: 10 });
 
-initializeApp();
+const app = initializeApp();
 
 const DB = 'mapa-de-calor';
-const db = getFirestore(DB);
+const db = getFirestore(app, DB);
 
 // Campos auditáveis de ocupacoes (ignora derivados semana/dia/mes e metadados de atribuição).
 const CAMPOS_AUDITADOS = [
