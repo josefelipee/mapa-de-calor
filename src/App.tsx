@@ -223,7 +223,7 @@ function App() {
         />
       )}
 
-      {mostrarAcessos && <GerenciarAcessos onClose={() => setMostrarAcessos(false)} />}
+      {mostrarAcessos && <GerenciarAcessos user={user} onClose={() => setMostrarAcessos(false)} />}
     </div>
   );
 }

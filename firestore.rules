@@ -3,75 +3,75 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Mapa de Calor — Ocupação Semanal
-    // Fonte de verdade de autorização: usuarios/{uid}.role (verificado no servidor).
-    // Custom claims são apenas espelho/leitura rápida no frontend.
-    //   viewer  -> leitura
-    //   editor  -> leitura + escrita em ocupacoes
-    //   admin   -> editor + gestão de acessos (via Cloud Functions)
+    // ADMIN: UID fixo (bootstrap, imutável).
+    // EDITOR: usuarios/{uid}.perfil == 'editor'.
+    // Demais autenticados: visualização.
 
-    function isSignedIn() {
+    function signedIn() {
       return request.auth != null;
     }
 
-    // Admin bootstrap fixo (imutável) para evitar lockout.
     function bootstrapAdminUid() {
-      return '7eWBP7WfzJYgEcsZ0UZFD5e9RfZ2';
-    }
-
-    function existeMeuUsuario() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
-    }
-
-    function minhaRole() {
-      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role;
+      return '7eWBP7WfzJYgEcsZ0UZFD5e9RfZ2'; // jose.slima@g.globo
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.uid == bootstrapAdminUid()
-        || (existeMeuUsuario() && minhaRole() == 'admin')
-      );
+      return signedIn() && request.auth.uid == bootstrapAdminUid();
+    }
+
+    function existeMeuUsuario() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function meuPerfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil;
     }
 
     function isEditor() {
-      return isAdmin() || (
-        isSignedIn() && existeMeuUsuario() && minhaRole() == 'editor'
-      );
+      return isAdmin() || (signedIn() && existeMeuUsuario() && meuPerfil() == 'editor');
     }
 
-    // Registros: leitura para autenticados; escrita para editor/admin,
-    // exigindo autoria válida (anti-spoof de auditoria).
+    // Registros: leitura para autenticados; escrita para editor/admin (com autoria válida).
     match /ocupacoes/{docId} {
-      allow read: if isSignedIn();
+      allow read: if signedIn();
       allow create, update: if isEditor()
         && request.resource.data.atualizadoPorUid == request.auth.uid
         && request.resource.data.atualizadoPor == request.auth.token.email;
       allow delete: if false;
     }
 
+    // Usuários/perfis.
+    match /usuarios/{uid} {
+      allow read: if signedIn() && (uid == request.auth.uid || isAdmin());
+
+      // Auto-registro: só o próprio doc, somente como 'visualizacao', campos limitados.
+      allow create: if signedIn()
+        && uid == request.auth.uid
+        && request.resource.data.perfil == 'visualizacao'
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.keys().hasOnly(['email', 'nome', 'perfil', 'atualizadoEm']);
+
+      // Admin altera somente o perfil (e metadados de auditoria); preserva email/nome/uid.
+      allow update: if isAdmin()
+        && request.resource.data.perfil in ['editor', 'visualizacao']
+        && request.resource.data.atualizadoPorUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['perfil', 'atualizadoPor', 'atualizadoPorUid', 'atualizadoEm']);
+
+      allow delete: if false;
+    }
+
     // Auditoria: cliente apenas lê; escrita exclusiva do backend.
     match /historicoAlteracoes/{docId} {
-      allow read: if isSignedIn();
+      allow read: if signedIn();
       allow write: if false;
     }
     match /historicoAcessos/{docId} {
-      allow read: if isSignedIn();
+      allow read: if signedIn();
       allow write: if false;
     }
 
-    // Usuários/permissões: leitura do próprio doc ou admin; escrita só pelo backend.
-    match /usuarios/{uid} {
-      allow read: if isSignedIn() && (uid == request.auth.uid || isAdmin());
-      allow write: if false;
-    }
-
-    // Pendências de acesso: exclusivo do backend.
-    match /acessosPendentes/{email} {
-      allow read, write: if false;
-    }
-
-    // Nega qualquer caminho não declarado.
     match /{document=**} {
       allow read, write: if false;
     }

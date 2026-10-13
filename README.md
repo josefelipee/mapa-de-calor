@@ -181,31 +181,28 @@ npm run fb:deploy   # build + deploy do dist/ no site mapa-de-calor
 
 ## Auditoria e gestão de acessos
 
-- **Roles:** `admin` > `editor` > `viewer`. Fonte de verdade para as **Security Rules**: `usuarios/{uid}.role` (verificado no servidor). Custom claims são espelho para leitura rápida no frontend.
-- **Admin bootstrap fixo** por UID nas rules (`jose.slima@g.globo`) para evitar lockout.
-- **Coleções:** `usuarios/{uid}`, `acessosPendentes/{email}`, `historicoAlteracoes` (operacional), `historicoAcessos` (permissões).
-- **Cloud Functions** (`functions/`, 2nd gen, `southamerica-east1`):
-  - `auditarOcupacao` → grava `historicoAlteracoes` (diff dos campos relevantes) a cada alteração em `ocupacoes`.
-  - `sincronizarClaims` → espelha `usuarios/{uid}.role` nas custom claims.
-  - `sincronizarMeuAcesso` (callable) → provisiona `usuarios/{uid}` no login e aplica `acessosPendentes`.
-  - `definirPapel` (callable, admin-only) → adiciona/remove editor e grava `historicoAcessos`.
-- **Atribuição nas escritas de `ocupacoes`:** `atualizadoPor`, `atualizadoPorUid`, `atualizadoEm`, `ultimaOperacaoId` (validados nas rules; não entram em cálculos nem na exportação).
-- **Frontend:** engrenagem no Header (só `admin`) → “Gerenciar acessos”; aba **Histórico** no Drawer (do dia e por registro).
+- **Perfis:** `admin` (UID fixo nas Rules) · `editor` (`usuarios/{uid}.perfil == 'editor'`) · `visualizacao` (padrão).
+- **Admin bootstrap:** UID fixo `7eWBP7WfzJYgEcsZ0UZFD5e9RfZ2` (jose.slima), validado **por UID** nas Rules (não por e-mail). Não há promoção a admin pela interface.
+- **Coleções:** `usuarios/{uid}` (`email`, `nome`, `perfil`), `historicoAlteracoes` (auditoria operacional), `historicoAcessos` (auditoria de permissões).
+- **Primeiro login:** o próprio usuário cria `usuarios/{uid}` **somente** como `visualizacao` (campos limitados pelas Rules). O admin promove para `editor` pela engrenagem.
+- **Escrita em `ocupacoes`:** `editor`/`admin`. As Rules usam `usuarios/{uid}.perfil` como **fonte de verdade** → remover editor bloqueia escrita **imediatamente** (sem depender de token/claims).
+- **Cloud Functions** (`functions/`, 2nd gen, `southamerica-east1`) — **somente triggers**, sem callables, sem `allUsers`, sem `firebaseauth.admin`:
+  - `auditarOcupacao` → `historicoAlteracoes` (diff dos campos relevantes).
+  - `auditarAcesso` → `historicoAcessos` (quando `perfil` muda).
+- **Atribuição em `ocupacoes`:** `atualizadoPor`, `atualizadoPorUid`, `atualizadoEm`, `ultimaOperacaoId` (validados nas Rules; não entram em cálculos/exportação).
+- **Frontend:** engrenagem (só admin) → “Gerenciar acessos” (abas **Usuários** e **Histórico de acessos**); aba **Histórico** no Drawer mostra `historicoAlteracoes` (do dia e por registro).
 
 ### Ordem de deploy (importante)
 
 ```bash
-# 1) Backend (requer permissões de Functions/Cloud Build + iam.serviceAccountUser)
-firebase deploy --only functions
+# 1) Functions/triggers (gcloud functions deploy --gen2 ...)
 # 2) Regras do banco nomeado mapa-de-calor
 npm run fb:rules
-# 3) Migrar usuários existentes para usuarios/{uid} (+ claims)
-node scripts/seed-usuarios.cjs
-# 4) Frontend
+# 3) Frontend
 npm run fb:deploy
 ```
 
-> Deployar o **frontend** antes das Functions/regras/seed faz todos entrarem como `viewer`.
+> Deployar o **frontend** antes das Functions/regras faz todos entrarem como `viewer`.
 
 ## Publicação (Firebase Hosting — oficial)
 

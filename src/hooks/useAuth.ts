@@ -9,22 +9,23 @@ import {
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import type { User, UserRole } from '../types';
-import { EDITORS } from '../config/mockUsers';
+import type { Perfil, User, UserRole } from '../types';
+import { ADMIN_UIDS } from '../config/mockUsers';
 import { auth, db, OIDC_PROVIDER_ID } from '../services/firebase';
-import { sincronizarMeuAcesso } from '../services/acessos';
+import { garantirMeuUsuario } from '../services/acessos';
 
 const provider = new OAuthProvider(OIDC_PROVIDER_ID);
 provider.addScope('openid');
 provider.addScope('email');
 provider.addScope('profile');
 
-/**
- * Papel de fallback enquanto o backend de roles (usuarios/{uid}) não está publicado:
- * usa a allowlist de e-mails (EDITORS). Quando o doc existir/estiver acessível, ele prevalece.
- */
-function roleFallback(email: string): UserRole {
-  return EDITORS.includes(email.trim().toLowerCase()) ? 'editor' : 'viewer';
+function ehAdmin(uid: string): boolean {
+  return ADMIN_UIDS.includes(uid);
+}
+
+function roleDe(uid: string, perfil: Perfil | null): UserRole {
+  if (ehAdmin(uid)) return 'admin';
+  return perfil === 'editor' ? 'editor' : 'viewer';
 }
 
 function descreverErro(error: unknown): string {
@@ -63,22 +64,26 @@ export function useAuth() {
 
       const uid = fbUser.uid;
       const email = (fbUser.email ?? '').toLowerCase();
-      const fallback = roleFallback(email);
 
-      // Garante usuarios/{uid} (e aplica acessosPendentes) e a claim no primeiro acesso.
-      sincronizarMeuAcesso().catch(e => console.error('Falha ao sincronizar acesso:', e));
-
-      // Papel em tempo real a partir de usuarios/{uid}; fallback p/ allowlist (transição).
       unsubDoc = onSnapshot(
         doc(db, 'usuarios', uid),
         snap => {
-          const role = (snap.data()?.role as UserRole) ?? fallback;
-          setUser({ uid, email, role });
+          if (!snap.exists()) {
+            // Primeiro acesso: auto-registro como 'visualizacao' (somente o próprio doc).
+            garantirMeuUsuario(uid, email, fbUser.displayName || email).catch(e =>
+              console.error('Falha ao auto-registrar usuário:', e)
+            );
+            setUser({ uid, email, role: roleDe(uid, null) });
+            setCarregando(false);
+            return;
+          }
+          const perfil = (snap.data()?.perfil ?? 'visualizacao') as Perfil;
+          setUser({ uid, email, role: roleDe(uid, perfil) });
           setCarregando(false);
         },
         err => {
-          console.error('Erro ao ler usuário (usando fallback por e-mail):', err);
-          setUser({ uid, email, role: fallback });
+          console.error('Erro ao ler usuário:', err);
+          setUser({ uid, email, role: roleDe(uid, null) });
           setCarregando(false);
         }
       );

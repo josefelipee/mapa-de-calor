@@ -52,11 +52,24 @@ export interface HistoricoAlteracao {
   camposAlterados: CampoAlterado[];
 }
 
+export type Perfil = 'visualizacao' | 'editor';
+
 export interface UsuarioAcesso {
   uid: string;
   email: string;
   nome: string;
-  role: UserRole;
+  perfil: Perfil;
+}
+
+export interface HistoricoAcesso {
+  id: string;
+  usuarioAfetado: string | null;
+  usuarioUid: string | null;
+  perfilAnterior: Perfil | null;
+  perfilNovo: Perfil | null;
+  executadoPor: string | null;
+  executadoPorUid: string | null;
+  executadoEm: Date | null;
 }
 
 /** Contexto de quem executa uma alteração (para auditoria/atribuição). */
