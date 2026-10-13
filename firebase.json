@@ -20,6 +20,7 @@
   },
   "functions": {
     "source": "functions",
+    "codebase": "mapa-de-calor",
     "runtime": "nodejs22",
     "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
   }

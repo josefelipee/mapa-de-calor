@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import * as logger from 'firebase-functions/logger';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 
@@ -30,17 +31,27 @@ export const auditarOcupacao = onDocumentWritten(
   async event => {
     const before = event.data?.before.exists ? event.data.before.data() : null;
     const after = event.data?.after.exists ? event.data.after.data() : null;
-    if (!before || !after) return; // audita somente UPDATE
 
     const camposAlterados: { campo: string; anterior: unknown; novo: unknown }[] = [];
-    for (const campo of CAMPOS_AUDITADOS) {
-      const anterior = before[campo] ?? null;
-      const novo = after[campo] ?? null;
-      if (JSON.stringify(anterior) !== JSON.stringify(novo)) {
-        camposAlterados.push({ campo, anterior, novo });
+    if (before && after) {
+      for (const campo of CAMPOS_AUDITADOS) {
+        const anterior = before[campo] ?? null;
+        const novo = after[campo] ?? null;
+        if (JSON.stringify(anterior) !== JSON.stringify(novo)) {
+          camposAlterados.push({ campo, anterior, novo });
+        }
       }
     }
-    if (camposAlterados.length === 0) return;
+
+    logger.info('auditarOcupacao', {
+      eventId: event.id,
+      ocupacaoId: event.params.id,
+      hasBefore: !!before,
+      hasAfter: !!after,
+      camposAlterados: camposAlterados.map(c => c.campo),
+    });
+
+    if (!before || !after || camposAlterados.length === 0) return;
 
     await db.collection('historicoAlteracoes').add({
       ocupacaoId: event.params.id,
@@ -62,6 +73,17 @@ export const auditarAcesso = onDocumentWritten(
   async event => {
     const before = event.data?.before.exists ? event.data.before.data() : null;
     const after = event.data?.after.exists ? event.data.after.data() : null;
+
+    const perfilAnterior = before?.perfil ?? null;
+    const perfilNovo = after?.perfil ?? null;
+
+    logger.info('auditarAcesso', {
+      eventId: event.id,
+      uid: event.params.uid,
+      perfilAnterior,
+      perfilNovo,
+    });
+
     if (!before || !after) return; // ignora criação/remoção
     if (before.perfil === after.perfil) return; // só mudança real de perfil
 
