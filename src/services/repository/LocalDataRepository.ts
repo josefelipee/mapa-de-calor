@@ -46,7 +46,7 @@ export class LocalDataRepository implements DataRepository {
     this.listeners.forEach(l => l(dados));
   }
 
-  subscribe(onData: (registros: Ocupacao[]) => void): () => void {
+  subscribe(onData: (registros: Ocupacao[]) => void, _onError?: (erro: unknown) => void): () => void {
     this.listeners.add(onData);
     onData(this.carregar());
     return () => {

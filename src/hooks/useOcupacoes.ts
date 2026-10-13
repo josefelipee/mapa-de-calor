@@ -23,12 +23,27 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    const unsub = dataRepository.subscribe(registros => {
-      setOcupacoes(registros);
-      setCarregando(false);
-    });
+    // Assina somente quando autenticado. Recria o listener ao trocar de usuário
+    // (login/logout) — sem depender de F5.
+    if (!user?.uid) {
+      setOcupacoes([]);
+      setCarregando(true);
+      return;
+    }
+
+    setCarregando(true);
+    const unsub = dataRepository.subscribe(
+      registros => {
+        setOcupacoes(registros);
+        setCarregando(false);
+      },
+      () => {
+        // Erro do Firestore: não deixar o loading infinito.
+        setCarregando(false);
+      }
+    );
     return unsub;
-  }, []);
+  }, [user?.uid]);
 
   const atualizarRegistro = useCallback(
     (registro: Ocupacao) => {

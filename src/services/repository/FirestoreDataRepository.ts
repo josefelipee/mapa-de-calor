@@ -20,13 +20,16 @@ function docParaOcupacao(id: string, data: DocumentData): Ocupacao {
 }
 
 export class FirestoreDataRepository implements DataRepository {
-  subscribe(onData: (registros: Ocupacao[]) => void): () => void {
+  subscribe(onData: (registros: Ocupacao[]) => void, onError?: (erro: unknown) => void): () => void {
     const unsub: Unsubscribe = onSnapshot(
       collection(db, COLECAO),
       snapshot => {
         onData(snapshot.docs.map(d => docParaOcupacao(d.id, d.data())));
       },
-      erro => console.error('Erro ao ler ocupações do Firestore:', erro)
+      erro => {
+        console.error('Erro ao ler ocupações do Firestore:', erro);
+        onError?.(erro);
+      }
     );
     return unsub;
   }
