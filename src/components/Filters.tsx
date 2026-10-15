@@ -12,6 +12,8 @@ interface FiltersProps {
   totalRegistros: number;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  podeCriar?: boolean;
+  onNovaAlocacao?: () => void;
 }
 
 const STATUS_OPCOES: StatusFiltro[] = ['ATIVO', 'INATIVO', 'TODOS'];
@@ -28,6 +30,8 @@ export function Filters({
   totalRegistros,
   viewMode,
   onViewModeChange,
+  podeCriar,
+  onNovaAlocacao,
 }: FiltersProps) {
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
@@ -120,6 +124,16 @@ export function Filters({
             ))}
           </div>
         </div>
+
+        {podeCriar && onNovaAlocacao && (
+          <button
+            onClick={onNovaAlocacao}
+            className="rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+            title="Nova alocação"
+          >
+            + Nova alocação
+          </button>
+        )}
 
         <button
           onClick={onExportar}

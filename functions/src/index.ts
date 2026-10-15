@@ -23,17 +23,33 @@ const CAMPOS_AUDITADOS = [
   'dtHrFimRecurso',
 ] as const;
 
+// Campos registrados na criação (valores iniciais relevantes).
+const CAMPOS_CRIACAO = [
+  'data',
+  'dtHrInicioRecurso',
+  'dtHrFimRecurso',
+  'projeto',
+  'tipo',
+  'status',
+  'statusRegistro',
+  'site',
+  'novaColunaOrcada',
+] as const;
+
 // ---------------------------------------------------------------------------
-// 1) Auditoria de alterações em ocupacoes (UPDATE) -> historicoAlteracoes
+// 1) Auditoria de CREATE/UPDATE em ocupacoes -> historicoAlteracoes
 // ---------------------------------------------------------------------------
 export const auditarOcupacao = onDocumentWritten(
   { document: 'ocupacoes/{id}', database: DB },
   async event => {
     const before = event.data?.before.exists ? event.data.before.data() : null;
     const after = event.data?.after.exists ? event.data.after.data() : null;
+    if (!after) return; // deleção não é auditada
 
+    const acao = before ? 'UPDATE' : 'CREATE';
     const camposAlterados: { campo: string; anterior: unknown; novo: unknown }[] = [];
-    if (before && after) {
+
+    if (before) {
       for (const campo of CAMPOS_AUDITADOS) {
         const anterior = before[campo] ?? null;
         const novo = after[campo] ?? null;
@@ -41,21 +57,26 @@ export const auditarOcupacao = onDocumentWritten(
           camposAlterados.push({ campo, anterior, novo });
         }
       }
+    } else {
+      for (const campo of CAMPOS_CRIACAO) {
+        camposAlterados.push({ campo, anterior: null, novo: after[campo] ?? null });
+      }
     }
 
     logger.info('auditarOcupacao', {
       eventId: event.id,
       ocupacaoId: event.params.id,
+      acao,
       hasBefore: !!before,
       hasAfter: !!after,
       camposAlterados: camposAlterados.map(c => c.campo),
     });
 
-    if (!before || !after || camposAlterados.length === 0) return;
+    if (acao === 'UPDATE' && camposAlterados.length === 0) return;
 
     await db.collection('historicoAlteracoes').add({
       ocupacaoId: event.params.id,
-      acao: 'UPDATE',
+      acao,
       usuarioUid: after.atualizadoPorUid ?? null,
       usuarioEmail: after.atualizadoPor ?? null,
       alteradoEm: FieldValue.serverTimestamp(),

@@ -21,6 +21,8 @@ interface HeatmapCellProps {
   onClick?: (dia: DiaCalculated) => void;
   detalhada?: boolean;
   drag?: DragCellHandlers;
+  podeCriar?: boolean;
+  onCriarVazio?: (dataCelula: string) => void;
 }
 
 const TOP_N = 6;
@@ -30,7 +32,7 @@ function truncar(nome: string, max = MAX_CHARS): string {
   return nome.length > max ? `${nome.slice(0, max).trimEnd()}...` : nome;
 }
 
-export function HeatmapCell({ dia, dataCelula, onClick, detalhada = false, drag }: HeatmapCellProps) {
+export function HeatmapCell({ dia, dataCelula, onClick, detalhada = false, drag, podeCriar = false, onCriarVazio }: HeatmapCellProps) {
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
 
@@ -63,6 +65,19 @@ export function HeatmapCell({ dia, dataCelula, onClick, detalhada = false, drag 
     : 'cursor-pointer';
 
   if (!dia) {
+    if (podeCriar && dataCelula && onCriarVazio) {
+      return (
+        <button
+          type="button"
+          onClick={() => onCriarVazio(dataCelula)}
+          {...dropProps}
+          title="Nova alocação neste dia"
+          className={`group flex h-6 w-full items-center justify-center rounded-[3px] bg-gray-50 text-blue-500 transition hover:bg-blue-50 ${alvoClass}`}
+        >
+          <span className="text-[11px] font-bold leading-none opacity-0 transition group-hover:opacity-100">+</span>
+        </button>
+      );
+    }
     return <div className={`h-6 w-full rounded-[3px] bg-gray-50 ${alvoClass}`} {...dropProps} />;
   }
 

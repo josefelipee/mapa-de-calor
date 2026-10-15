@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { DiaCalculated, User, Ocupacao, ViewMode, StatusRegistro, HistoricoAlteracao } from '../types';
-import { formatDataExtenso, getNomeMes } from '../utils/dateUtils';
+import { formatDataExtenso, formatDataBR, getNomeMes } from '../utils/dateUtils';
 import { formatPercent, TIPOS_OPCOES } from '../config/heatmapConfig';
 import { getWeekNumber, getWeekday } from '../utils/weekNumber';
 import { agruparConteudosPorDia, calcularPercentual } from '../utils/calculations';
+import { criarRegistroVazio, validarNovaAlocacao, podeEditar } from '../utils/ocupacao';
 import { listarHistoricoPorOcupacao, listarHistoricoPorOcupacoes } from '../services/historico';
 import { HistoricoLista } from './HistoricoLista';
 import { Legend } from './Legend';
@@ -12,8 +13,13 @@ interface DrawerProps {
   dia: DiaCalculated | null;
   user: User;
   viewMode: ViewMode;
+  criacao: { data: string } | null;
+  sitesDisponiveis: string[];
   onClose: () => void;
-  onSave: (registro: Ocupacao) => void;
+  onFecharCriacao: () => void;
+  onNovaAlocacao: (data: string) => void;
+  onSalvar: (registro: Ocupacao) => void;
+  onCriar: (registro: Ocupacao) => void;
 }
 
 const DIAS_SEMANA_LABEL = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -21,33 +27,62 @@ const DIAS_SEMANA_LABEL = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta',
 const formatNumero = (n: number) =>
   n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function Drawer({ dia, user, viewMode, onClose, onSave }: DrawerProps) {
+export function Drawer({
+  dia,
+  user,
+  viewMode,
+  criacao,
+  sitesDisponiveis,
+  onClose,
+  onFecharCriacao,
+  onNovaAlocacao,
+  onSalvar,
+  onCriar,
+}: DrawerProps) {
   const [tab, setTab] = useState<'resumo' | 'registros' | 'historico'>('resumo');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Ocupacao | null>(null);
-  const isEditor = user.role === 'editor' || user.role === 'admin';
+  const [formCriar, setFormCriar] = useState<Ocupacao | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [erroForm, setErroForm] = useState<string | null>(null);
+  const isEditor = podeEditar(user.role);
+  const modoCriar = !!criacao;
 
   useEffect(() => {
     setTab('resumo');
     setEditingId(null);
     setForm(null);
+    setErroForm(null);
+    setSalvando(false);
   }, [dia?.data]);
 
-  if (!dia) return null;
+  useEffect(() => {
+    if (criacao) {
+      setFormCriar(criarRegistroVazio(criacao.data));
+      setErroForm(null);
+      setSalvando(false);
+    } else {
+      setFormCriar(null);
+    }
+  }, [criacao]);
+
+  if (!dia && !criacao) return null;
 
   const abrirRegistro = (registro: Ocupacao) => {
     setEditingId(registro.id);
     setForm({ ...registro });
+    setErroForm(null);
   };
 
   const voltarLista = () => {
     setEditingId(null);
     setForm(null);
+    setErroForm(null);
   };
 
-  const handleSave = () => {
+  const handleSalvarEdit = () => {
     if (!form) return;
-    onSave({
+    onSalvar({
       ...form,
       novaColunaOrcada: Number(form.novaColunaOrcada) || 0,
       hora2: form.hora2 === null ? null : Number(form.hora2),
@@ -56,90 +91,128 @@ export function Drawer({ dia, user, viewMode, onClose, onSave }: DrawerProps) {
     voltarLista();
   };
 
+  const handleCriar = () => {
+    if (!formCriar || salvando) return;
+    const erro = validarNovaAlocacao(formCriar);
+    if (erro) {
+      setErroForm(erro);
+      return;
+    }
+    setSalvando(true);
+    onCriar(formCriar);
+  };
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl">
         <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-              Semana {dia.semana} · {DIAS_SEMANA_LABEL[dia.diaSemana]}
-            </p>
-            <h2 className="text-lg font-semibold text-gray-900">{formatDataExtenso(dia.data)}</h2>
+            {dia ? (
+              <>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                  Semana {dia.semana} · {DIAS_SEMANA_LABEL[dia.diaSemana]}
+                </p>
+                <h2 className="text-lg font-semibold text-gray-900">{formatDataExtenso(dia.data)}</h2>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Nova alocação</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {formCriar?.data ? formatDataBR(formCriar.data) : 'Selecione a data'}
+                </h2>
+              </>
+            )}
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+          <button
+            onClick={modoCriar ? onFecharCriacao : onClose}
+            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          >
             ✕
           </button>
         </div>
 
-        {/* Abas */}
-        <div className="flex border-b border-gray-100">
-          <button
-            onClick={() => setTab('resumo')}
-            className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-              tab === 'resumo'
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Resumo
-          </button>
-          <button
-            onClick={() => setTab('registros')}
-            className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-              tab === 'registros'
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Registros ({dia.registros.length})
-          </button>
-          <button
-            onClick={() => setTab('historico')}
-            className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-              tab === 'historico'
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Histórico
-          </button>
-        </div>
-
-        {tab === 'resumo' ? (
-          <AbaResumo dia={dia} viewMode={viewMode} />
-        ) : tab === 'historico' ? (
-          <AbaHistoricoDia dia={dia} />
-        ) : editingId && form ? (
+        {modoCriar && formCriar ? (
           <FichaRegistro
-            form={form}
+            modo="criar"
+            form={formCriar}
             isEditor={isEditor}
-            onChange={setForm}
-            onVoltar={voltarLista}
-            onCancelar={voltarLista}
-            onSalvar={handleSave}
+            sites={sitesDisponiveis}
+            salvando={salvando}
+            erro={erroForm}
+            onChange={setFormCriar}
+            onVoltar={onFecharCriacao}
+            onCancelar={onFecharCriacao}
+            onSalvar={handleCriar}
           />
         ) : (
-          <ListaRegistros dia={dia} isEditor={isEditor} onAbrir={abrirRegistro} />
-        )}
+          <>
+            <div className="flex border-b border-gray-100">
+              <button
+                onClick={() => setTab('resumo')}
+                className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+                  tab === 'resumo' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Resumo
+              </button>
+              <button
+                onClick={() => setTab('registros')}
+                className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+                  tab === 'registros' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Registros ({dia?.registros.length ?? 0})
+              </button>
+              <button
+                onClick={() => setTab('historico')}
+                className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+                  tab === 'historico' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Histórico
+              </button>
+            </div>
 
-        {/* Rodapé */}
-        {tab === 'resumo' && (
-          <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-4">
-            <button
-              onClick={onClose}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Fechar
-            </button>
-            <button
-              onClick={() => setTab('registros')}
-              className="flex items-center gap-2 rounded-md bg-corporate-900 px-4 py-2 text-sm font-medium text-white hover:bg-corporate-800"
-            >
-              Ver todos os registros
-              <span aria-hidden>→</span>
-            </button>
-          </div>
+            {!dia ? null : tab === 'resumo' ? (
+              <AbaResumo dia={dia} viewMode={viewMode} />
+            ) : tab === 'historico' ? (
+              <AbaHistoricoDia dia={dia} />
+            ) : editingId && form ? (
+              <FichaRegistro
+                modo="editar"
+                form={form}
+                isEditor={isEditor}
+                sites={sitesDisponiveis}
+                salvando={false}
+                erro={erroForm}
+                onChange={setForm}
+                onVoltar={voltarLista}
+                onCancelar={voltarLista}
+                onSalvar={handleSalvarEdit}
+              />
+            ) : (
+              <ListaRegistros dia={dia} isEditor={isEditor} onAbrir={abrirRegistro} onNovaAlocacao={onNovaAlocacao} />
+            )}
+
+            {dia && tab === 'resumo' && (
+              <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-4">
+                <button
+                  onClick={onClose}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Fechar
+                </button>
+                <button
+                  onClick={() => setTab('registros')}
+                  className="flex items-center gap-2 rounded-md bg-corporate-900 px-4 py-2 text-sm font-medium text-white hover:bg-corporate-800"
+                >
+                  Ver todos os registros
+                  <span aria-hidden>→</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </>
@@ -155,9 +228,7 @@ function AbaResumo({ dia, viewMode }: { dia: DiaCalculated; viewMode: ViewMode }
   return (
     <div className="flex-1 overflow-y-auto px-5 py-4 scrollbar-thin">
       <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-500">
-          Ocupação total do dia
-        </p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-500">Ocupação total do dia</p>
         <p className="mt-0.5 text-2xl font-bold text-blue-900">
           {formatPercent(dia.percentual)}
           <span className="ml-2 align-middle text-xs font-medium text-blue-500">
@@ -241,13 +312,23 @@ function ListaRegistros({
   dia,
   isEditor,
   onAbrir,
+  onNovaAlocacao,
 }: {
   dia: DiaCalculated;
   isEditor: boolean;
   onAbrir: (registro: Ocupacao) => void;
+  onNovaAlocacao: (data: string) => void;
 }) {
   return (
     <div className="flex-1 overflow-y-auto px-5 py-4 scrollbar-thin">
+      {isEditor && (
+        <button
+          onClick={() => onNovaAlocacao(dia.data)}
+          className="mb-3 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-blue-300 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-50"
+        >
+          + Nova alocação neste dia
+        </button>
+      )}
       <ul className="space-y-1.5">
         {dia.registros.map((r, index) => (
           <li
@@ -284,21 +365,26 @@ function ListaRegistros({
 }
 
 interface FichaProps {
+  modo: 'criar' | 'editar';
   form: Ocupacao;
   isEditor: boolean;
+  sites: string[];
+  salvando: boolean;
+  erro: string | null;
   onChange: (form: Ocupacao) => void;
   onVoltar: () => void;
   onCancelar: () => void;
   onSalvar: () => void;
 }
 
-function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalvar }: FichaProps) {
+function FichaRegistro({ modo, form, isEditor, sites, salvando, erro, onChange, onVoltar, onCancelar, onSalvar }: FichaProps) {
   const set = <K extends keyof Ocupacao>(key: K, value: Ocupacao[K]) => {
     onChange({ ...form, [key]: value });
   };
 
   const [historico, setHistorico] = useState<HistoricoAlteracao[] | null>(null);
   useEffect(() => {
+    if (modo !== 'editar') return;
     let ativo = true;
     setHistorico(null);
     listarHistoricoPorOcupacao(form.id)
@@ -311,11 +397,12 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
     return () => {
       ativo = false;
     };
-  }, [form.id]);
+  }, [form.id, modo]);
 
   const semanaPreview = form.data ? getWeekNumber(form.data) : '';
   const diaPreview = form.data ? DIAS_SEMANA_LABEL[getWeekday(form.data)] : '';
   const mesPreview = form.data ? getNomeMes(form.data) : '';
+  const criando = modo === 'criar';
 
   const inputClass =
     'w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500';
@@ -323,12 +410,20 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
   return (
     <>
       <div className="flex items-center justify-between border-b border-gray-100 px-5 py-2.5">
-        <button onClick={onVoltar} className="text-sm font-medium text-blue-600 hover:text-blue-700">
-          ← Voltar aos registros
-        </button>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-          {isEditor ? 'Editar registro' : 'Detalhes do registro'}
-        </span>
+        {criando ? (
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            {isEditor ? 'Nova alocação' : 'Detalhes'}
+          </span>
+        ) : (
+          <button onClick={onVoltar} className="text-sm font-medium text-blue-600 hover:text-blue-700">
+            ← Voltar aos registros
+          </button>
+        )}
+        {!criando && (
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            {isEditor ? 'Editar registro' : 'Detalhes do registro'}
+          </span>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4 scrollbar-thin">
@@ -347,6 +442,7 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
           </Field>
           <Field label="TIPO">
             <select disabled={!isEditor} value={form.tipo} onChange={e => set('tipo', e.target.value)} className={inputClass}>
+              {!form.tipo && <option value="">Selecione…</option>}
               {!TIPOS_OPCOES.includes(form.tipo) && form.tipo && <option value={form.tipo}>{form.tipo}</option>}
               {TIPOS_OPCOES.filter(t => t !== 'TODOS').map(t => (
                 <option key={t} value={t}>{t}</option>
@@ -368,46 +464,64 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
             </select>
           </Field>
           <Field label="SITE">
-            <input type="text" disabled={!isEditor} value={form.site} onChange={e => set('site', e.target.value)} className={inputClass} />
+            <input
+              type="text"
+              list="sites-lista"
+              disabled={!isEditor}
+              value={form.site}
+              onChange={e => set('site', e.target.value)}
+              className={inputClass}
+            />
+            <datalist id="sites-lista">
+              {sites.map(s => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
           </Field>
           <Field label="DURAÇÃO">
             <input type="number" step="0.01" disabled={!isEditor} value={form.novaColunaOrcada} onChange={e => set('novaColunaOrcada', Number(e.target.value))} className={inputClass} />
           </Field>
 
-          <div className="rounded-lg bg-gray-50 p-3">
-            <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
-              Campos recalculados automaticamente
-            </p>
-            <div className="grid grid-cols-4 gap-2 text-xs text-gray-600">
-              <div>
-                <span className="block text-[9px] uppercase text-gray-400">ID</span>
-                <span className="block truncate">{form.idPlanilha || '—'}</span>
+          {!criando && (
+            <>
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
+                  Campos recalculados automaticamente
+                </p>
+                <div className="grid grid-cols-4 gap-2 text-xs text-gray-600">
+                  <div>
+                    <span className="block text-[9px] uppercase text-gray-400">ID</span>
+                    <span className="block truncate">{form.idPlanilha || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] uppercase text-gray-400">Semana</span>
+                    <span>{semanaPreview}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] uppercase text-gray-400">Dia</span>
+                    <span>{diaPreview}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] uppercase text-gray-400">Mês</span>
+                    <span>{mesPreview}</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="block text-[9px] uppercase text-gray-400">Semana</span>
-                <span>{semanaPreview}</span>
-              </div>
-              <div>
-                <span className="block text-[9px] uppercase text-gray-400">Dia</span>
-                <span>{diaPreview}</span>
-              </div>
-              <div>
-                <span className="block text-[9px] uppercase text-gray-400">Mês</span>
-                <span>{mesPreview}</span>
-              </div>
-            </div>
-          </div>
 
-          <div className="border-t border-gray-100 pt-4">
-            <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
-              Histórico deste registro
-            </p>
-            {historico === null ? (
-              <p className="py-4 text-center text-xs text-gray-400">Carregando…</p>
-            ) : (
-              <HistoricoLista itens={historico} />
-            )}
-          </div>
+              <div className="border-t border-gray-100 pt-4">
+                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
+                  Histórico deste registro
+                </p>
+                {historico === null ? (
+                  <p className="py-4 text-center text-xs text-gray-400">Carregando…</p>
+                ) : (
+                  <HistoricoLista itens={historico} />
+                )}
+              </div>
+            </>
+          )}
+
+          {erro && <p className="text-xs text-red-600">{erro}</p>}
         </div>
       </div>
 
@@ -417,8 +531,12 @@ function FichaRegistro({ form, isEditor, onChange, onVoltar, onCancelar, onSalva
             Cancelar
           </button>
           {isEditor && (
-            <button onClick={onSalvar} className="rounded-md bg-corporate-900 px-4 py-2 text-sm font-medium text-white hover:bg-corporate-800">
-              Salvar alterações
+            <button
+              onClick={onSalvar}
+              disabled={salvando}
+              className="rounded-md bg-corporate-900 px-4 py-2 text-sm font-medium text-white hover:bg-corporate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {salvando ? 'Salvando…' : criando ? 'Criar alocação' : 'Salvar alterações'}
             </button>
           )}
         </div>

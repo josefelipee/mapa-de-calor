@@ -54,6 +54,15 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     [user]
   );
 
+  const criarAlocacao = useCallback(
+    (registro: Ocupacao) => {
+      if (!user) return;
+      const ator: Ator = { uid: user.uid, email: user.email, operationId: novoOperationId() };
+      void dataRepository.create(registro, ator);
+    },
+    [user]
+  );
+
   const restaurar = useCallback(() => {
     void dataRepository.reset();
   }, []);
@@ -108,6 +117,15 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     [dias, filtros.dataInicial, filtros.dataFinal]
   );
 
+  const sitesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of ocupacoes) {
+      const s = (o.site ?? '').trim();
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [ocupacoes]);
+
   const contarMoviveis = useCallback(
     (dataOrigem: string, projeto: string): number =>
       selecionarParaMover(ocupacoes, {
@@ -143,8 +161,10 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     semanas,
     metricasSemanais,
     projetosDisponiveis,
+    sitesDisponiveis,
     totalRegistros: dadosFiltrados.length,
     atualizarRegistro,
+    criarAlocacao,
     contarMoviveis,
     moverAlocacao,
     restaurar,

@@ -64,6 +64,13 @@ export class LocalDataRepository implements DataRepository {
     };
   }
 
+  async create(registro: Ocupacao, ator: Ator): Promise<void> {
+    if (this.carregar().some(o => o.id === registro.id)) return;
+    const atualizadas = [...this.carregar(), this.comAtor(registro, ator)];
+    this.salvar(atualizadas);
+    this.emitir();
+  }
+
   async update(registro: Ocupacao, ator: Ator): Promise<void> {
     const atualizadas = this.carregar().map(o => (o.id === registro.id ? this.comAtor(registro, ator) : o));
     this.salvar(atualizadas);

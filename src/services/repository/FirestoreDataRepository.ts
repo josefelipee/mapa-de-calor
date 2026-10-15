@@ -34,6 +34,11 @@ export class FirestoreDataRepository implements DataRepository {
     return unsub;
   }
 
+  async create(registro: Ocupacao, ator: Ator): Promise<void> {
+    // Mesmo caminho de escrita; o doc id é o `id` interno gerado na criação.
+    await this.updateMany([registro], ator);
+  }
+
   async update(registro: Ocupacao, ator: Ator): Promise<void> {
     await this.updateMany([registro], ator);
   }

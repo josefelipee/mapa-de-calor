@@ -10,6 +10,8 @@ export interface DataRepository {
     onData: (registros: Ocupacao[]) => void,
     onError?: (erro: unknown) => void
   ): () => void;
+  /** Cria um novo registro. */
+  create(registro: Ocupacao, ator: Ator): Promise<void>;
   /** Atualiza um registro. */
   update(registro: Ocupacao, ator: Ator): Promise<void>;
   /** Atualiza vários registros em lote (mesmo operationId). */

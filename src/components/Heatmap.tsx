@@ -11,6 +11,8 @@ interface HeatmapProps {
   viewMode: ViewMode;
   semanaSelecionada: number | null;
   drag?: DragCellHandlers;
+  podeCriar?: boolean;
+  onCriarDia?: (data: string) => void;
 }
 
 const DIAS_LABEL = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
@@ -51,7 +53,7 @@ function agruparPorMes(semanas: SemanaCalculated[]): GrupoMes[] {
   return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
 }
 
-export function Heatmap({ semanas, onCellClick, viewMode, semanaSelecionada, drag }: HeatmapProps) {
+export function Heatmap({ semanas, onCellClick, viewMode, semanaSelecionada, drag, podeCriar, onCriarDia }: HeatmapProps) {
   useEffect(() => {
     if (semanaSelecionada == null) return;
     const el = document.getElementById(`semana-${semanaSelecionada}`);
@@ -79,6 +81,8 @@ export function Heatmap({ semanas, onCellClick, viewMode, semanaSelecionada, dra
         semanaSelecionada={semanaSelecionada}
         onCellClick={onCellClick}
         drag={drag}
+        podeCriar={podeCriar}
+        onCriarDia={onCriarDia}
       />
       <BlocoSemestre
         meses={semestre2}
@@ -86,6 +90,8 @@ export function Heatmap({ semanas, onCellClick, viewMode, semanaSelecionada, dra
         semanaSelecionada={semanaSelecionada}
         onCellClick={onCellClick}
         drag={drag}
+        podeCriar={podeCriar}
+        onCriarDia={onCriarDia}
       />
     </div>
   );
@@ -97,12 +103,16 @@ function BlocoSemestre({
   semanaSelecionada,
   onCellClick,
   drag,
+  podeCriar,
+  onCriarDia,
 }: {
   meses: GrupoMes[];
   detalhada: boolean;
   semanaSelecionada: number | null;
   onCellClick: (dia: DiaCalculated) => void;
   drag?: DragCellHandlers;
+  podeCriar?: boolean;
+  onCriarDia?: (data: string) => void;
 }) {
   const ano = meses[0]?.ano;
   const inicioIdx = meses[0] ? meses[0].mes - 1 : 0;
@@ -176,6 +186,8 @@ function BlocoSemestre({
                             onClick={onCellClick}
                             detalhada={detalhada}
                             drag={drag}
+                            podeCriar={podeCriar}
+                            onCriarVazio={onCriarDia}
                           />
                         </td>
                       ))}

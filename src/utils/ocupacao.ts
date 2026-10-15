@@ -1,4 +1,4 @@
-import type { Ocupacao, StatusRegistro, StatusFiltro } from '../types';
+import type { Ocupacao, StatusRegistro, StatusFiltro, Filtros } from '../types';
 import { atendeSelecao, type Selecao } from './multiselect';
 import { getWeekNumber, getWeekday } from './weekNumber';
 import { getNomeMes } from './dateUtils';
@@ -44,4 +44,75 @@ export function selecionarParaMover(ocupacoes: Ocupacao[], ctx: ContextoMoviment
 /** Aplica a nova DATA aos registros, mantendo todo o restante intacto. */
 export function comNovaData(registros: Ocupacao[], novaData: string): Ocupacao[] {
   return registros.map(r => ({ ...r, data: novaData }));
+}
+
+// ---------------------------------------------------------------------------
+// Nova alocação (criação manual)
+// ---------------------------------------------------------------------------
+
+function novoId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+/** Cria um registro vazio para o formulário de Nova Alocação. */
+export function criarRegistroVazio(data = ''): Ocupacao {
+  return {
+    id: novoId(),
+    dtHrInicioRecurso: '',
+    dtHrFimRecurso: '',
+    semana: 0,
+    dia: 0,
+    mes: '',
+    projeto: '',
+    tipo: '',
+    idPlanilha: '-',
+    nmRecurso: '-',
+    status: 'Alocação',
+    tipo2: '-',
+    site: '',
+    data,
+    hora2: null,
+    horaOrcada: null,
+    novaColunaOrcada: 0,
+    statusRegistro: 'ATIVO',
+  };
+}
+
+/** Valida uma nova alocação. Retorna a mensagem de erro ou null se válida. */
+export function validarNovaAlocacao(o: Ocupacao): string | null {
+  if (!o.data) return 'Informe a DATA.';
+  if (!o.dtHrInicioRecurso) return 'Informe o início (DT_HR_INICIO_RECURSO).';
+  if (!o.dtHrFimRecurso) return 'Informe o fim (DT_HR_FIM_RECURSO).';
+  if (!o.projeto.trim()) return 'Informe o PROJETO / CONTEÚDO.';
+  if (!o.tipo) return 'Informe o TIPO.';
+  if (!o.status.trim()) return 'Informe o STATUS.';
+  if (!o.site.trim()) return 'Informe o SITE.';
+  if (!o.statusRegistro) return 'Informe o STATUS DO REGISTRO.';
+  if (!(o.novaColunaOrcada > 0)) return 'DURAÇÃO deve ser maior que 0.';
+  if (o.dtHrFimRecurso <= o.dtHrInicioRecurso) return 'O fim deve ser posterior ao início.';
+  return null;
+}
+
+/** O registro ficaria visível com os filtros atuais (data/tipo/status/projeto)? */
+export function registroVisivelComFiltros(o: Ocupacao, filtros: Filtros): boolean {
+  if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) return false;
+  if (!atendeSelecao(o.tipo, { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos })) {
+    return false;
+  }
+  if (filtros.statusRegistro !== 'TODOS' && (o.statusRegistro ?? 'ATIVO') !== filtros.statusRegistro) {
+    return false;
+  }
+  if (filtros.selectionMode === 'custom' && !filtros.selectedProjects.includes(o.projeto)) {
+    return false;
+  }
+  return true;
+}
+
+/** O usuário pode criar/editar? (editor ou admin) */
+export function podeEditar(role: string): boolean {
+  return role === 'editor' || role === 'admin';
 }
