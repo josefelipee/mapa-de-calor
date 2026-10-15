@@ -76,8 +76,8 @@ export function buildExportRow(o: Ocupacao): ValorCelula[] {
     o.tipo2,
     o.site,
     dataParaDate(o.data),
-    o.hora2 ?? null,
-    o.horaOrcada ?? null,
+    o.hora2 ?? '-',
+    o.horaOrcada ?? '-',
     o.novaColunaOrcada,
     o.statusRegistro ?? 'ATIVO',
   ];
