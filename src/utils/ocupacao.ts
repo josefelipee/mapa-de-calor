@@ -3,10 +3,12 @@ import { atendeSelecao, type Selecao } from './multiselect';
 import { getWeekNumber, getWeekday } from './weekNumber';
 import { getNomeMes } from './dateUtils';
 
-/** Garante statusRegistro válido (base antiga → ATIVO). */
+/** Garante statusRegistro/canal válidos (base antiga → ATIVO / canal vazio). */
 export function normalizarOcupacao(o: Ocupacao): Ocupacao {
   const statusRegistro: StatusRegistro = o.statusRegistro === 'INATIVO' ? 'INATIVO' : 'ATIVO';
-  return o.statusRegistro === statusRegistro ? o : { ...o, statusRegistro };
+  const canal = typeof o.canal === 'string' ? o.canal : '';
+  if (o.statusRegistro === statusRegistro && o.canal === canal) return o;
+  return { ...o, statusRegistro, canal };
 }
 
 /** Normaliza e recalcula os campos derivados de DATA. */
@@ -74,6 +76,7 @@ export function criarRegistroVazio(data = ''): Ocupacao {
     status: 'Alocação',
     tipo2: '-',
     site: '',
+    canal: '',
     data,
     hora2: null,
     horaOrcada: null,
@@ -101,6 +104,9 @@ export function validarNovaAlocacao(o: Ocupacao): string | null {
 export function registroVisivelComFiltros(o: Ocupacao, filtros: Filtros): boolean {
   if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) return false;
   if (!atendeSelecao(o.tipo, { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos })) {
+    return false;
+  }
+  if (!atendeSelecao(o.canal ?? '', { selectionMode: filtros.canaisSelectionMode, values: filtros.selectedCanais })) {
     return false;
   }
   if (filtros.statusRegistro !== 'TODOS' && (o.statusRegistro ?? 'ATIVO') !== filtros.statusRegistro) {

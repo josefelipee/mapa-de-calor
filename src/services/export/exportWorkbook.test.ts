@@ -20,6 +20,12 @@ const p2 = (n: number) => String(n).padStart(2, '0');
 const fmtData = (d: Date) => `${p2(d.getUTCDate())}/${p2(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
 const fmtDataHora = (d: Date) => `${fmtData(d)} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`;
 
+// Índices (1-based) das colunas após a inclusão de CANAL e ID_REGISTRO.
+const COL_DATA = 14;
+const COL_NOVA_COLUNA = 17;
+const COL_STATUS_REGISTRO = 18;
+const COL_ID_REGISTRO = 19;
+
 async function exportarEReler(registros: Ocupacao[]) {
   const wb = await buildWorkbook(registros);
   const buffer = await wb.xlsx.writeBuffer();
@@ -48,22 +54,25 @@ describe('Exportação Excel — base e estrutura', () => {
 });
 
 describe('Exportação Excel — round-trip', () => {
-  it('aba Base com 17 colunas, na ordem correta, e sem perdas/duplicatas', async () => {
+  it('aba Base com 19 colunas, na ordem correta, e sem perdas/duplicatas', async () => {
     const { ws } = await exportarEReler(base);
 
-    // 17 colunas (16 originais + STATUS_REGISTRO)
-    expect(ws.columnCount).toBe(17);
+    expect(ws.columnCount).toBe(19);
 
-    // ordem dos cabeçalhos
     const headers: string[] = [];
-    for (let c = 1; c <= 17; c++) {
+    for (let c = 1; c <= 19; c++) {
       headers.push(String(ws.getRow(1).getCell(c).value));
     }
     expect(headers).toEqual(COLUNAS.map(c => c.header));
-    expect(headers[16]).toBe('STATUS_REGISTRO');
+    expect(headers[12]).toBe('CANAL');
+    expect(headers[17]).toBe('STATUS_REGISTRO');
+    expect(headers[18]).toBe('ID_REGISTRO');
 
     // STATUS_REGISTRO presente e ATIVO quando ausente na base
-    expect(String(ws.getCell(2, 17).value)).toBe('ATIVO');
+    expect(String(ws.getCell(2, COL_STATUS_REGISTRO).value)).toBe('ATIVO');
+
+    // ID_REGISTRO = uuid interno do registro
+    expect(String(ws.getCell(2, COL_ID_REGISTRO).value)).toBe(base[0].id);
 
     // linhas = 7233 dados + 1 cabeçalho
     expect(ws.rowCount).toBe(base.length + 1);
@@ -73,33 +82,30 @@ describe('Exportação Excel — round-trip', () => {
   it('preserva tipos: DATA e DT_HR como data, numéricos como número', async () => {
     const { ws } = await exportarEReler(base);
 
-    // Procura a primeira linha de dados e confere os tipos
     const dados = base[0];
     const r = 2;
 
-    // DATA (col 13)
-    const dataCell = ws.getCell(r, 13);
+    // DATA
+    const dataCell = ws.getCell(r, COL_DATA);
     expect(dataCell.value).toBeInstanceOf(Date);
     expect((dataCell.value as Date).toISOString().slice(0, 10)).toBe(dados.data);
 
-    // DT_HR_INICIO_RECURSO (col 1) e DT_HR_FIM_RECURSO (col 2)
+    // DT_HR
     const inicio = ws.getCell(r, 1).value as Date;
     const fim = ws.getCell(r, 2).value as Date;
     expect(inicio).toBeInstanceOf(Date);
     expect(fim).toBeInstanceOf(Date);
-    const esperadoInicio = dataHoraParaDate(dados.dtHrInicioRecurso)!;
-    const esperadoFim = dataHoraParaDate(dados.dtHrFimRecurso)!;
-    expect(fmtDataHora(inicio)).toBe(fmtDataHora(esperadoInicio));
-    expect(fmtDataHora(fim)).toBe(fmtDataHora(esperadoFim));
+    expect(fmtDataHora(inicio)).toBe(fmtDataHora(dataHoraParaDate(dados.dtHrInicioRecurso)!));
+    expect(fmtDataHora(fim)).toBe(fmtDataHora(dataHoraParaDate(dados.dtHrFimRecurso)!));
 
-    // Semana (col 3) e Dia (col 4) numéricos
+    // Semana/Dia numéricos
     expect(typeof ws.getCell(r, 3).value).toBe('number');
     expect(typeof ws.getCell(r, 4).value).toBe('number');
 
-    // Nova Coluna Orçada (col 16) numérico com valor preservado
-    expect(ws.getCell(r, 16).value).toBeCloseTo(dados.novaColunaOrcada, 10);
+    // Nova Coluna Orçada numérico
+    expect(ws.getCell(r, COL_NOVA_COLUNA).value).toBeCloseTo(dados.novaColunaOrcada, 10);
 
-    // ID original preservado (col 8)
+    // ID original preservado
     expect(String(ws.getCell(r, 8).value)).toBe(dados.idPlanilha);
   });
 
@@ -109,7 +115,7 @@ describe('Exportação Excel — round-trip', () => {
     for (const idx of amostra) {
       const dados = base[idx];
       const r = idx + 2;
-      const dataCell = ws.getCell(r, 13).value as Date;
+      const dataCell = ws.getCell(r, COL_DATA).value as Date;
       expect(dataCell, `idx ${idx} (r=${r}) DATA nula`).toBeInstanceOf(Date);
       expect(fmtData(dataCell)).toBe(fmtData(dataParaDate(dados.data)!));
 
@@ -120,8 +126,6 @@ describe('Exportação Excel — round-trip', () => {
   });
 
   it('exporta a BASE COMPLETA mesmo com janela de edição (ignora filtros visuais)', async () => {
-    // Simula um subconjunto "filtrado" sendo passado — o serviço não conhece filtros,
-    // mas o app sempre passa a base completa. Aqui garantimos que o app passa base.length.
     const { ws } = await exportarEReler(base);
     expect(ws.actualRowCount - 1).toBe(7233);
   });
@@ -135,7 +139,7 @@ describe('Exportação Excel — edições', () => {
 
     const { ws } = await exportarEReler(editada);
     const r = editada.indexOf(alvo) + 2;
-    expect(ws.getCell(r, 16).value).toBeCloseTo(999.5, 10);
+    expect(ws.getCell(r, COL_NOVA_COLUNA).value).toBeCloseTo(999.5, 10);
   });
 
   it('alteração de DATA recalcula Semana/Dia/Mês e mantém o ID', async () => {
@@ -150,11 +154,20 @@ describe('Exportação Excel — edições', () => {
     const { ws } = await exportarEReler(editada);
     const r = editada.indexOf(alvo) + 2;
 
-    expect((ws.getCell(r, 13).value as Date).toISOString().slice(0, 10)).toBe(novaData);
+    expect((ws.getCell(r, COL_DATA).value as Date).toISOString().slice(0, 10)).toBe(novaData);
     expect(ws.getCell(r, 3).value).toBe(esperados.semana);
     expect(ws.getCell(r, 4).value).toBe(esperados.dia);
     expect(String(ws.getCell(r, 5).value)).toBe(esperados.mes);
     expect(String(ws.getCell(r, 8).value)).toBe(idOriginal);
+  });
+
+  it('exporta CANAL e mantém o ID_REGISTRO interno', async () => {
+    const editada = base.map(o => ({ ...o }));
+    editada[0] = { ...editada[0], canal: 'CANAL TESTE' };
+
+    const { ws } = await exportarEReler(editada);
+    expect(String(ws.getCell(2, 13).value)).toBe('CANAL TESTE');
+    expect(String(ws.getCell(2, COL_ID_REGISTRO).value)).toBe(editada[0].id);
   });
 });
 
@@ -163,12 +176,10 @@ describe('Exportação Excel — Excel Table e formatos', () => {
     const wb = await buildWorkbook(base);
     const ws = wb.getWorksheet('Base')!;
 
-    // Tabela via API do ExcelJS
     const tabela = ws.getTable('Tabela1');
     expect(tabela).toBeTruthy();
     expect((tabela as { name: string }).name).toBe('Tabela1');
 
-    // Confirma a presença da tabela no XML do pacote
     const buffer = await wb.xlsx.writeBuffer();
     const zip = await JSZip.loadAsync(buffer);
     const tableXml = await zip.file('xl/tables/table1.xml')?.async('string');
@@ -176,8 +187,7 @@ describe('Exportação Excel — Excel Table e formatos', () => {
     expect(tableXml).toContain('name="Tabela1"');
     expect(tableXml).toContain('displayName="Tabela1"');
 
-    // Formato numérico de DATA na primeira linha de dados
-    expect(ws.getCell(2, 13).numFmt).toBe(NUM_FORMATO_DATA);
+    expect(ws.getCell(2, COL_DATA).numFmt).toBe(NUM_FORMATO_DATA);
     expect(ws.getCell(2, 1).numFmt).toBe(NUM_FORMATO_DATAHORA);
   });
 });

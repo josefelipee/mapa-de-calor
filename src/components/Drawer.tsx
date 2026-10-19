@@ -478,6 +478,15 @@ function FichaRegistro({ modo, form, isEditor, sites, salvando, erro, onChange, 
               ))}
             </datalist>
           </Field>
+          <Field label="CANAL">
+            <input
+              type="text"
+              disabled={!isEditor}
+              value={form.canal ?? ''}
+              onChange={e => set('canal', e.target.value)}
+              className={inputClass}
+            />
+          </Field>
           <Field label="DURAÇÃO">
             <input type="number" step="0.01" disabled={!isEditor} value={form.novaColunaOrcada} onChange={e => set('novaColunaOrcada', Number(e.target.value))} className={inputClass} />
           </Field>

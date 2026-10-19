@@ -15,6 +15,7 @@ export interface Ocupacao {
   status: string;
   tipo2: string;
   site: string;
+  canal: string;
   data: string; // YYYY-MM-DD (editável, fonte de verdade da célula)
   hora2: number | null;
   horaOrcada: number | null;
@@ -88,6 +89,10 @@ export interface Filtros {
   tiposSelectionMode: SelectionMode;
   /** Tipos selecionados quando tiposSelectionMode = 'custom'. Vazio = nenhum. */
   selectedTipos: string[];
+  /** 'all' = todos os canais; 'custom' = apenas selectedCanais. */
+  canaisSelectionMode: SelectionMode;
+  /** Canais selecionados quando canaisSelectionMode = 'custom'. Vazio = nenhum. */
+  selectedCanais: string[];
   /** 'all' = todos os projetos do período/tipo; 'custom' = apenas selectedProjects. */
   selectionMode: SelectionMode;
   /** Projetos selecionados quando selectionMode = 'custom'. Vazio = nenhum. */

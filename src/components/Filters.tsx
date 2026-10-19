@@ -2,6 +2,7 @@ import type { Filtros, ViewMode, StatusFiltro } from '../types';
 import { TIPOS_VALORES } from '../config/heatmapConfig';
 import { ProjectFilter } from './ProjectFilter';
 import { TipoFilter } from './TipoFilter';
+import { CanalFilter } from './CanalFilter';
 
 interface FiltersProps {
   filtros: Filtros;
@@ -9,11 +10,13 @@ interface FiltersProps {
   onExportar: () => void;
   exportando: boolean;
   projetosDisponiveis: string[];
+  canaisDisponiveis: string[];
   totalRegistros: number;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   podeCriar?: boolean;
   onNovaAlocacao?: () => void;
+  onImportarPlanilha?: () => void;
 }
 
 const STATUS_OPCOES: StatusFiltro[] = ['ATIVO', 'INATIVO', 'TODOS'];
@@ -27,11 +30,13 @@ export function Filters({
   onExportar,
   exportando,
   projetosDisponiveis,
+  canaisDisponiveis,
   totalRegistros,
   viewMode,
   onViewModeChange,
   podeCriar,
   onNovaAlocacao,
+  onImportarPlanilha,
 }: FiltersProps) {
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
@@ -57,6 +62,18 @@ export function Filters({
             options={projetosDisponiveis}
             onChange={(selectionMode, selectedProjects) =>
               onChange({ ...filtros, selectionMode, selectedProjects })
+            }
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Canal</label>
+          <CanalFilter
+            selectionMode={filtros.canaisSelectionMode}
+            selectedCanais={filtros.selectedCanais}
+            options={canaisDisponiveis}
+            onChange={(canaisSelectionMode, selectedCanais) =>
+              onChange({ ...filtros, canaisSelectionMode, selectedCanais })
             }
           />
         </div>
@@ -132,6 +149,16 @@ export function Filters({
             title="Nova alocação"
           >
             + Nova alocação
+          </button>
+        )}
+
+        {podeCriar && onImportarPlanilha && (
+          <button
+            onClick={onImportarPlanilha}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            title="Importar planilha padrão (atualização em massa)"
+          >
+            Importar planilha
           </button>
         )}
 

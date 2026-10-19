@@ -63,18 +63,50 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     [user]
   );
 
+  const atualizarEmLote = useCallback(
+    (registros: Ocupacao[]) => {
+      if (!user || registros.length === 0) return;
+      const ator: Ator = { uid: user.uid, email: user.email, operationId: novoOperationId() };
+      void dataRepository.updateMany(registros, ator);
+    },
+    [user]
+  );
+
   const restaurar = useCallback(() => {
     void dataRepository.reset();
   }, []);
 
-  // Lista de projetos respeita Data + Tipos + Status, mas NÃO o próprio filtro de projeto.
+  // Lista de projetos respeita Data + Tipos + Status + Canais, mas NÃO o próprio filtro de projeto.
   const projetosDisponiveis = useMemo(() => {
     const set = new Set<string>();
     for (const o of ocupacoes) {
       if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) continue;
       if (!atendeSelecao(o.tipo, { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos })) continue;
+      if (!atendeSelecao(o.canal ?? '', { selectionMode: filtros.canaisSelectionMode, values: filtros.selectedCanais })) continue;
       if (!atendeStatus(o.statusRegistro, filtros.statusRegistro)) continue;
       set.add(o.projeto);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [
+    ocupacoes,
+    filtros.dataInicial,
+    filtros.dataFinal,
+    filtros.tiposSelectionMode,
+    filtros.selectedTipos,
+    filtros.canaisSelectionMode,
+    filtros.selectedCanais,
+    filtros.statusRegistro,
+  ]);
+
+  // Lista de canais: Data + Tipos + Status (sem aplicar o próprio filtro de canal).
+  const canaisDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of ocupacoes) {
+      if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) continue;
+      if (!atendeSelecao(o.tipo, { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos })) continue;
+      if (!atendeStatus(o.statusRegistro, filtros.statusRegistro)) continue;
+      const canal = (o.canal ?? '').trim();
+      if (canal) set.add(canal);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [
@@ -95,6 +127,7 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     return ocupacoes.filter(o => {
       if (o.data < filtros.dataInicial || o.data > filtros.dataFinal) return false;
       if (!atendeSelecao(o.tipo, selTipos)) return false;
+      if (!atendeSelecao(o.canal ?? '', { selectionMode: filtros.canaisSelectionMode, values: filtros.selectedCanais })) return false;
       if (!atendeStatus(o.statusRegistro, filtros.statusRegistro)) return false;
       if (filtraProjeto && !filtros.selectedProjects.includes(o.projeto)) return false;
       return true;
@@ -105,6 +138,8 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     filtros.dataFinal,
     filtros.tiposSelectionMode,
     filtros.selectedTipos,
+    filtros.canaisSelectionMode,
+    filtros.selectedCanais,
     filtros.selectionMode,
     filtros.selectedProjects,
     filtros.statusRegistro,
@@ -161,10 +196,12 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     semanas,
     metricasSemanais,
     projetosDisponiveis,
+    canaisDisponiveis,
     sitesDisponiveis,
     totalRegistros: dadosFiltrados.length,
     atualizarRegistro,
     criarAlocacao,
+    atualizarEmLote,
     contarMoviveis,
     moverAlocacao,
     restaurar,

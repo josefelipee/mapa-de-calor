@@ -11,16 +11,23 @@ const app = initializeApp();
 const DB = 'mapa-de-calor';
 const db = getFirestore(app, DB);
 
-// Campos auditáveis de ocupacoes (ignora derivados semana/dia/mes e metadados de atribuição).
+// Campos auditáveis de ocupacoes (inclui os campos importáveis da planilha).
 const CAMPOS_AUDITADOS = [
   'data',
-  'novaColunaOrcada',
-  'statusRegistro',
-  'projeto',
-  'tipo',
-  'site',
   'dtHrInicioRecurso',
   'dtHrFimRecurso',
+  'projeto',
+  'tipo',
+  'idPlanilha',
+  'nmRecurso',
+  'status',
+  'tipo2',
+  'site',
+  'canal',
+  'hora2',
+  'horaOrcada',
+  'novaColunaOrcada',
+  'statusRegistro',
 ] as const;
 
 // Campos registrados na criação (valores iniciais relevantes).
@@ -33,6 +40,7 @@ const CAMPOS_CRIACAO = [
   'status',
   'statusRegistro',
   'site',
+  'canal',
   'novaColunaOrcada',
 ] as const;
 

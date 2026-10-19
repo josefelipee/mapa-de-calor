@@ -11,6 +11,7 @@ import { Legend } from './components/Legend';
 import { Drawer } from './components/Drawer';
 import { ConfirmMoveDialog } from './components/ConfirmMoveDialog';
 import { GerenciarAcessos } from './components/GerenciarAcessos';
+import { ImportarPlanilha } from './components/ImportarPlanilha';
 import { exportarExcel, nomeArquivoExcel } from './services/export';
 import { registroVisivelComFiltros, podeEditar } from './utils/ocupacao';
 import type { Filtros, ViewMode, Ocupacao } from './types';
@@ -20,6 +21,8 @@ const FILTROS_INICIAIS: Filtros = {
   dataFinal: '2027-12-31',
   tiposSelectionMode: 'all',
   selectedTipos: [],
+  canaisSelectionMode: 'all',
+  selectedCanais: [],
   selectionMode: 'all',
   selectedProjects: [],
   statusRegistro: 'ATIVO',
@@ -59,10 +62,12 @@ function App() {
     semanas,
     metricasSemanais,
     projetosDisponiveis,
+    canaisDisponiveis,
     sitesDisponiveis,
     totalRegistros,
     atualizarRegistro,
     criarAlocacao,
+    atualizarEmLote,
     contarMoviveis,
     moverAlocacao,
   } = useOcupacoes(filtros, user);
@@ -74,6 +79,7 @@ function App() {
   const [mostrarAcessos, setMostrarAcessos] = useState(false);
   const [criacao, setCriacao] = useState<{ data: string } | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [mostrarImportacao, setMostrarImportacao] = useState(false);
 
   if (carregandoAuth) {
     return <TelaCarregando texto="Verificando sessão..." />;
@@ -191,11 +197,13 @@ function App() {
           onExportar={handleExportar}
           exportando={exportando}
           projetosDisponiveis={projetosDisponiveis}
+          canaisDisponiveis={canaisDisponiveis}
           totalRegistros={totalRegistros}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           podeCriar={podeCriarAlocacao}
           onNovaAlocacao={() => setCriacao({ data: '' })}
+          onImportarPlanilha={() => setMostrarImportacao(true)}
         />
 
         <div className="mt-2 flex justify-end">
@@ -255,6 +263,14 @@ function App() {
       )}
 
       {mostrarAcessos && <GerenciarAcessos user={user} onClose={() => setMostrarAcessos(false)} />}
+
+      {mostrarImportacao && (
+        <ImportarPlanilha
+          ocupacoes={ocupacoes}
+          onAplicar={atualizarEmLote}
+          onClose={() => setMostrarImportacao(false)}
+        />
+      )}
 
       {aviso && (
         <div className="fixed bottom-4 left-1/2 z-[300] -translate-x-1/2 rounded-lg bg-corporate-900 px-4 py-2 text-sm text-white shadow-lg">

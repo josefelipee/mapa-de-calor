@@ -11,7 +11,7 @@ export interface ColunaExport {
   tipo: TipoColuna;
 }
 
-/** As 16 colunas originais da Tabela1 + STATUS_REGISTRO (17ª). */
+/** As 16 colunas originais da Tabela1 + STATUS_REGISTRO + CANAL + ID_REGISTRO (19 colunas). */
 export const COLUNAS: ColunaExport[] = [
   { header: 'DT_HR_INICIO_RECURSO', key: 'dtHrInicioRecurso', width: 20, tipo: 'datahora' },
   { header: 'DT_HR_FIM_RECURSO', key: 'dtHrFimRecurso', width: 20, tipo: 'datahora' },
@@ -25,11 +25,13 @@ export const COLUNAS: ColunaExport[] = [
   { header: 'Status', key: 'status', width: 14, tipo: 'texto' },
   { header: 'Tipo2', key: 'tipo2', width: 14, tipo: 'texto' },
   { header: 'SITE', key: 'site', width: 10, tipo: 'texto' },
+  { header: 'CANAL', key: 'canal', width: 16, tipo: 'texto' },
   { header: 'DATA', key: 'data', width: 12, tipo: 'data' },
   { header: 'Hora2', key: 'hora2', width: 10, tipo: 'numero' },
   { header: 'Hora Orçada', key: 'horaOrcada', width: 12, tipo: 'numero' },
   { header: 'Nova Coluna Orçada', key: 'novaColunaOrcada', width: 18, tipo: 'numero' },
   { header: 'STATUS_REGISTRO', key: 'statusRegistro', width: 16, tipo: 'texto' },
+  { header: 'ID_REGISTRO', key: 'id', width: 38, tipo: 'texto' },
 ];
 
 export const NUM_FORMATO_DATA = 'dd/mm/yyyy';
@@ -75,11 +77,13 @@ export function buildExportRow(o: Ocupacao): ValorCelula[] {
     o.status,
     o.tipo2,
     o.site,
+    o.canal ?? '',
     dataParaDate(o.data),
     o.hora2 ?? '-',
     o.horaOrcada ?? '-',
     o.novaColunaOrcada,
     o.statusRegistro ?? 'ATIVO',
+    o.id,
   ];
 }
 
