@@ -7,3 +7,5 @@ export const ADMIN_UIDS = [
 
 export const APP_TITLE = 'MAPA DE CALOR';
 export const APP_SUBTITLE = 'Ocupação Semanal';
+export const APP_AREA = 'Gestão de Capacidade Técnica';
+export const APP_AREA_LINHAS = ['GESTÃO DE', 'CAPACIDADE', 'TÉCNICA'];

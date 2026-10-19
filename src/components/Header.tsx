@@ -1,4 +1,4 @@
-import { APP_TITLE, APP_SUBTITLE } from '../config/mockUsers';
+import { APP_TITLE, APP_SUBTITLE, APP_AREA_LINHAS } from '../config/mockUsers';
 import type { User } from '../types';
 
 interface HeaderProps {
@@ -23,15 +23,23 @@ export function Header({ user, onLogout, onGerenciarAcessos }: HeaderProps) {
   return (
     <header className="bg-corporate-900 text-white shadow-md">
       <div className="flex h-14 items-center justify-between px-4 lg:px-6">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <img
             src={`${import.meta.env.BASE_URL}logo.png`}
             alt="Mapa de Calor"
-            className="h-8 w-8 rounded-md object-contain"
+            className="h-8 w-8 shrink-0 rounded-md object-contain"
           />
           <div className="leading-tight">
             <h1 className="text-sm font-bold tracking-wider">{APP_TITLE}</h1>
             <p className="text-[10px] uppercase tracking-widest text-gray-400">{APP_SUBTITLE}</p>
+          </div>
+
+          <div className="mx-1 hidden h-8 w-px shrink-0 bg-gray-600 sm:block" aria-hidden />
+
+          <div className="hidden flex-col text-[8px] font-semibold uppercase leading-[1.2] tracking-[0.14em] text-gray-300 sm:flex">
+            {APP_AREA_LINHAS.map(linha => (
+              <span key={linha}>{linha}</span>
+            ))}
           </div>
         </div>
 
