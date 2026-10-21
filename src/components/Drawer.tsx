@@ -5,6 +5,7 @@ import { formatPercent, TIPOS_OPCOES } from '../config/heatmapConfig';
 import { getWeekNumber, getWeekday } from '../utils/weekNumber';
 import { agruparConteudosPorDia, calcularPercentual } from '../utils/calculations';
 import { criarRegistroVazio, validarNovaAlocacao, podeEditar } from '../utils/ocupacao';
+import { estiloCanal } from '../config/canalConfig';
 import { listarHistoricoPorOcupacao, listarHistoricoPorOcupacoes } from '../services/historico';
 import { HistoricoLista } from './HistoricoLista';
 import { Legend } from './Legend';
@@ -342,8 +343,16 @@ function ListaRegistros({
               <p className="truncate text-sm font-medium text-gray-800" title={r.projeto}>
                 {r.projeto || '(sem projeto)'}
               </p>
-              <p className="flex items-center gap-2 text-[11px] text-gray-500">
+              <p className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
                 <span>{r.tipo} · {formatNumero(r.novaColunaOrcada)}</span>
+                {r.canal && (
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${estiloCanal(r.canal)}`}
+                    title={`Canal: ${r.canal}`}
+                  >
+                    {r.canal}
+                  </span>
+                )}
                 {r.statusRegistro === 'INATIVO' && (
                   <span className="rounded bg-gray-200 px-1 py-0.5 text-[9px] font-semibold uppercase text-gray-600">
                     Inativo
