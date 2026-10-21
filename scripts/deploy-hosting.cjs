@@ -8,15 +8,26 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
-const { execSync } = require('child_process');
+const { GoogleAuth } = require('google-auth-library');
 
 const PROJECT = 'gglobo-pea-hdg-prd';
 const SITE = 'mapa-de-calor';
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'dist');
 const API = 'https://firebasehosting.googleapis.com/v1beta1';
+const KEY_PATH =
+  process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+  'C:\\Projetos\\Hub de Paineis\\gglobo-pea-hdg-prd-7e245672146b.json';
 
-function getToken() {
-  return execSync('gcloud auth print-access-token', { encoding: 'utf8' }).trim();
+async function getToken() {
+  const key = JSON.parse(fs.readFileSync(KEY_PATH, 'utf8'));
+  const auth = new GoogleAuth({
+    credentials: key,
+    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  });
+  const client = await auth.getClient();
+  const t = await client.getAccessToken();
+  if (!t.token) throw new Error('Não foi possível obter access token da service account.');
+  return t.token;
 }
 
 function walk(dir) {
@@ -49,7 +60,7 @@ async function main() {
   if (!fs.existsSync(PUBLIC_DIR)) {
     throw new Error(`Pasta não encontrada: ${PUBLIC_DIR}. Rode "npm run build" antes.`);
   }
-  const token = getToken();
+  const token = await getToken();
   const files = walk(PUBLIC_DIR);
   const fileMap = {};
   const hashToBuffer = {};
