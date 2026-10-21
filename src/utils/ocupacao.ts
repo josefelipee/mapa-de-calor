@@ -26,18 +26,20 @@ export interface ContextoMovimento {
   dataOrigem: string;
   projeto: string;
   tipos: Selecao; // seleção de tipos (all/custom)
+  canais: Selecao; // seleção de canais (all/custom)
   statusRegistro: StatusFiltro; // 'TODOS' | 'ATIVO' | 'INATIVO'
 }
 
 /**
  * Registros que COMPÕEM a célula visível e, portanto, serão movidos:
- * mesmo projeto + data de origem, respeitando os filtros de Tipo e Status em vigor.
+ * mesmo projeto + data de origem, respeitando os filtros de Tipo, Canal e Status em vigor.
  */
 export function selecionarParaMover(ocupacoes: Ocupacao[], ctx: ContextoMovimento): Ocupacao[] {
   return ocupacoes.filter(o => {
     if (o.data !== ctx.dataOrigem) return false;
     if (o.projeto !== ctx.projeto) return false;
     if (!atendeSelecao(o.tipo, ctx.tipos)) return false;
+    if (!atendeSelecao(o.canal ?? '', ctx.canais)) return false;
     if (ctx.statusRegistro !== 'TODOS' && (o.statusRegistro ?? 'ATIVO') !== ctx.statusRegistro) return false;
     return true;
   });

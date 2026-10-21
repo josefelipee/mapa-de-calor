@@ -167,9 +167,17 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
         dataOrigem,
         projeto,
         tipos: { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos },
+        canais: { selectionMode: filtros.canaisSelectionMode, values: filtros.selectedCanais },
         statusRegistro: filtros.statusRegistro,
       }).length,
-    [ocupacoes, filtros.tiposSelectionMode, filtros.selectedTipos, filtros.statusRegistro]
+    [
+      ocupacoes,
+      filtros.tiposSelectionMode,
+      filtros.selectedTipos,
+      filtros.canaisSelectionMode,
+      filtros.selectedCanais,
+      filtros.statusRegistro,
+    ]
   );
 
   const moverAlocacao = useCallback(
@@ -179,6 +187,7 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
         dataOrigem,
         projeto,
         tipos: { selectionMode: filtros.tiposSelectionMode, values: filtros.selectedTipos },
+        canais: { selectionMode: filtros.canaisSelectionMode, values: filtros.selectedCanais },
         statusRegistro: filtros.statusRegistro,
       });
       if (registros.length === 0) return 0;
@@ -186,7 +195,15 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
       void dataRepository.updateMany(comNovaData(registros, dataDestino), ator);
       return registros.length;
     },
-    [ocupacoes, user, filtros.tiposSelectionMode, filtros.selectedTipos, filtros.statusRegistro]
+    [
+      ocupacoes,
+      user,
+      filtros.tiposSelectionMode,
+      filtros.selectedTipos,
+      filtros.canaisSelectionMode,
+      filtros.selectedCanais,
+      filtros.statusRegistro,
+    ]
   );
 
   return {

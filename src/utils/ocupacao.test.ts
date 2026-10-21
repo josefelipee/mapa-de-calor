@@ -52,6 +52,7 @@ describe('selecionarParaMover', () => {
       dataOrigem: '2027-03-11',
       projeto: 'FÓRMULA 1',
       tipos: { selectionMode: 'custom', values: ['EVENTO ESPORTIVO'] },
+      canais: { selectionMode: 'all', values: [] },
       statusRegistro: 'ATIVO',
     });
     expect(r.map(o => o.id)).toEqual(['1', '2']);
@@ -62,6 +63,7 @@ describe('selecionarParaMover', () => {
       dataOrigem: '2027-03-11',
       projeto: 'FÓRMULA 1',
       tipos: { selectionMode: 'custom', values: ['EVENTO ESPORTIVO'] },
+      canais: { selectionMode: 'all', values: [] },
       statusRegistro: 'INATIVO',
     });
     expect(r.map(o => o.id)).toEqual(['3']);
@@ -72,9 +74,26 @@ describe('selecionarParaMover', () => {
       dataOrigem: '2027-03-11',
       projeto: 'FÓRMULA 1',
       tipos: { selectionMode: 'all', values: [] },
+      canais: { selectionMode: 'all', values: [] },
       statusRegistro: 'TODOS',
     });
     expect(r.map(o => o.id)).toEqual(['1', '2', '3', '4']);
+  });
+
+  it('filtro de CANAL move apenas registros do canal selecionado', () => {
+    const baseCanal: Ocupacao[] = [
+      oc({ id: 's1', data: '2027-03-11', canal: 'SPORTV', statusRegistro: 'ATIVO' }),
+      oc({ id: 'g1', data: '2027-03-11', canal: 'GETV', statusRegistro: 'ATIVO' }),
+      oc({ id: 's2', data: '2027-03-11', canal: 'SPORTV', statusRegistro: 'ATIVO' }),
+    ];
+    const r = selecionarParaMover(baseCanal, {
+      dataOrigem: '2027-03-11',
+      projeto: 'FÓRMULA 1',
+      tipos: { selectionMode: 'all', values: [] },
+      canais: { selectionMode: 'custom', values: ['SPORTV'] },
+      statusRegistro: 'ATIVO',
+    });
+    expect(r.map(o => o.id)).toEqual(['s1', 's2']);
   });
 });
 
