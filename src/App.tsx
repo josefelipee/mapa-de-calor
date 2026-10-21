@@ -14,13 +14,14 @@ import { GerenciarAcessos } from './components/GerenciarAcessos';
 import { ImportarPlanilha } from './components/ImportarPlanilha';
 import { exportarExcel, nomeArquivoExcel } from './services/export';
 import { registroVisivelComFiltros, podeEditar } from './utils/ocupacao';
+import { TIPOS_PADRAO_SELECIONADOS } from './config/heatmapConfig';
 import type { Filtros, ViewMode, Ocupacao } from './types';
 
 const FILTROS_INICIAIS: Filtros = {
   dataInicial: '2027-01-01',
   dataFinal: '2027-12-31',
-  tiposSelectionMode: 'all',
-  selectedTipos: [],
+  tiposSelectionMode: 'custom',
+  selectedTipos: TIPOS_PADRAO_SELECIONADOS,
   canaisSelectionMode: 'all',
   selectedCanais: [],
   selectionMode: 'all',

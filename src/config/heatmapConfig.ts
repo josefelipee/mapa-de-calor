@@ -40,6 +40,9 @@ export const TIPOS_OPCOES = [
 /** Tipos sem o sentinela 'TODOS' (para o multiselect). */
 export const TIPOS_VALORES = TIPOS_OPCOES.filter(t => t !== 'TODOS');
 
+/** Seleção inicial padrão: todos os tipos, exceto SEM CONTROLE. */
+export const TIPOS_PADRAO_SELECIONADOS = TIPOS_VALORES.filter(t => t !== 'SEM CONTROLE');
+
 export const MESES_ABREV = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
 export const MESES_EXTENSO = [

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Ocupacao, Filtros, User, Ator } from '../types';
 import { dataRepository } from '../services/repository';
-import { agruparPorDia, agruparPorSemana, calcularMetricasSemanais } from '../utils/calculations';
+import { agruparPorDia, agruparPorSemana, calcularMetricasSemanais, contarAlocacoesDistintas } from '../utils/calculations';
 import { selecionarParaMover, comNovaData } from '../utils/ocupacao';
 import { atendeSelecao, type Selecao } from '../utils/multiselect';
 
@@ -198,7 +198,7 @@ export function useOcupacoes(filtros: Filtros, user: User | null) {
     projetosDisponiveis,
     canaisDisponiveis,
     sitesDisponiveis,
-    totalRegistros: dadosFiltrados.length,
+    totalRegistros: contarAlocacoesDistintas(dadosFiltrados),
     atualizarRegistro,
     criarAlocacao,
     atualizarEmLote,

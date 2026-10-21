@@ -169,3 +169,17 @@ export function calcularMetricasSemanais(
     }))
     .sort((x, y) => x.semana - y.semana);
 }
+
+/**
+ * Conta ALOCAÇÕES distintas (não linhas) para o contador.
+ * Chave: DT_HR_INICIO_RECURSO + PROJETO + SITE + CANAL.
+ * Se o início vier vazio, usa o `id` para não colapsar registros distintos.
+ */
+export function contarAlocacoesDistintas(registros: Ocupacao[]): number {
+  const chaves = new Set<string>();
+  for (const o of registros) {
+    const inicio = o.dtHrInicioRecurso || o.id;
+    chaves.add(`${inicio}||${o.projeto}||${o.site ?? ''}||${o.canal ?? ''}`);
+  }
+  return chaves.size;
+}
